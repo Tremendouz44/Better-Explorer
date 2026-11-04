@@ -1,0 +1,8 @@
+{
+  "title": "Better explorer by BJM",
+  "description": "A better Explorer for Trimble Connect: the whole project as an expandable folder tree with checkboxes and bulk actions.",
+  "extensionType": ["project"],
+  "url": "https://tremendouz44.github.io/Better-Explorer/",
+  "icon": "https://tremendouz44.github.io/Better-Explorer/icon.png",
+  "enabled": true
+}

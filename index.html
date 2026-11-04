@@ -1,0 +1,854 @@
+<!doctype html>
+<!--
+  Better explorer by BJM – Trimble Connect project extension
+  Author: Branislav Jozef Murcin
+  Repository: https://github.com/tremendouz44/Better-Explorer
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="author" content="Branislav Jozef Murcin">
+<title>Better explorer by BJM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Colours follow Trimble Modus (the design system Trimble Connect uses). */
+  :root {
+    --blue: #0063a3; --blue-hover: #217cbb; --blue-press: #004f83; --blue-tint: #e0eefa;
+    --text: #252a2e; --text-2: #464b52; --text-3: #6a6e79;
+    --line: #e0e1e9; --line-2: #cbcdd6;
+    --bg: #f1f1f6; --white: #ffffff; --head: #f9f9fb;
+    --selected: #dcedf9; --hover: #f5f5f9;
+    --red: #da212c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: "Open Sans", Arial, sans-serif; font-size: 14px; color: var(--text); background: var(--bg); }
+  .hidden { display: none !important; }
+  button { font-family: inherit; }
+  svg.i { width: 20px; height: 20px; fill: currentColor; flex: none; }
+
+  /* ---------- states ---------- */
+  .screen { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; color: var(--text-2); }
+  .screen h2 { margin: 0; font-size: 20px; font-weight: 400; color: var(--text); }
+  .screen p { margin: 0; max-width: 460px; line-height: 1.5; }
+  .screen .detail { font-size: 12px; color: var(--text-3); }
+  .spinner { width: 36px; height: 36px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--blue); animation: spin .8s linear infinite; }
+  .mini-spin { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line-2); border-top-color: var(--blue); animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------- page ---------- */
+  #screenMain { height: 100vh; display: flex; flex-direction: column; padding: 14px 16px 16px; }
+  .page-head { display: flex; align-items: baseline; gap: 10px; min-height: 36px; }
+  .page-head h1 { margin: 0; font-size: 20px; font-weight: 400; color: var(--text); }
+  .ver { font-size: 11px; color: var(--text-3); }
+  .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 48px; }
+  .crumbs { color: var(--text-3); font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .crumbs .last { color: var(--text); }
+  .crumbs .sep { margin: 0 8px; font-size: 13px; }
+  .tools { display: flex; align-items: center; gap: 4px; flex: none; }
+  .status { font-size: 12px; color: var(--text-3); margin-right: 8px; display: inline-flex; align-items: center; gap: 8px; }
+  .search { display: flex; align-items: center; gap: 4px; }
+  .search input { width: 0; opacity: 0; padding: 0; border: 1px solid transparent; height: 36px; font: inherit; color: var(--text); background: var(--white); transition: width .2s, opacity .2s; }
+  .search.open input { width: 240px; opacity: 1; padding: 0 10px; border-color: var(--line-2); border-bottom-color: var(--text-3); }
+  .search input:focus { outline: none; border-bottom: 2px solid var(--blue); }
+  .icon-btn { width: 36px; height: 36px; border: 0; background: none; border-radius: 50%; display: grid; place-items: center; color: var(--text); cursor: pointer; }
+  .icon-btn:hover { background: var(--line); }
+  .text-btn { height: 34px; padding: 0 12px; border: 0; background: none; border-radius: 4px; color: var(--blue); font-size: 14px; font-weight: 600; cursor: pointer; }
+  .text-btn:hover { background: var(--blue-tint); }
+  .text-btn:disabled { opacity: .5; cursor: default; background: none; }
+
+  .bulk { display: flex; align-items: center; gap: 8px; height: 46px; margin-bottom: 8px; padding: 0 12px; background: var(--blue-tint); border-left: 4px solid var(--blue); }
+  .bulk .cnt { font-weight: 600; margin-right: 8px; }
+  .btn-primary, .btn-secondary { height: 32px; padding: 0 16px; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn-primary { border: 1px solid var(--blue); background: var(--blue); color: #fff; }
+  .btn-primary:hover { background: var(--blue-hover); border-color: var(--blue-hover); }
+  .btn-primary:disabled { opacity: .55; cursor: default; }
+  .btn-secondary { border: 1px solid var(--blue); background: var(--white); color: var(--blue); }
+  .btn-secondary:hover { background: var(--white); }
+
+  .content { flex: 1; min-height: 0; display: flex; gap: 12px; }
+  .table-wrap { flex: 1; min-width: 0; overflow: auto; background: var(--white); }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  th { position: sticky; top: 0; z-index: 1; background: var(--head); height: 48px; padding: 0 12px; text-align: left; font-weight: 600; color: var(--text-3); border-bottom: 1px solid var(--line-2); cursor: pointer; user-select: none; white-space: nowrap; }
+  th.active { color: var(--text); }
+  th .arr { margin-left: 6px; font-size: 13px; }
+  th .thin { display: inline-flex; align-items: center; gap: 12px; }
+  td { height: 44px; padding: 0 12px; border-bottom: 1px solid var(--line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover td { background: var(--hover); }
+  tbody tr.sel td { background: var(--selected); }
+  tbody tr.focus td:first-child { box-shadow: inset 3px 0 0 var(--blue); }
+  td.name { color: var(--text); }
+  td.name .cell { display: flex; align-items: center; gap: 6px; overflow: hidden; }
+  td.name .nm { overflow: hidden; text-overflow: ellipsis; }
+  tr.folder td.name .nm { font-weight: 600; }
+  input.cb { width: 16px; height: 16px; margin: 0 6px 0 0; accent-color: var(--blue); cursor: pointer; flex: none; }
+  .tog, .tog-gap { width: 22px; height: 22px; flex: none; }
+  .tog { display: grid; place-items: center; border: 0; background: none; padding: 0; cursor: pointer; color: var(--text-2); border-radius: 4px; }
+  .tog:hover { background: var(--line); }
+  .tog svg { width: 18px; height: 18px; fill: currentColor; transition: transform .12s; }
+  .tog.open svg { transform: rotate(90deg); }
+  td.name svg.ico { width: 22px; height: 22px; flex: none; margin-right: 4px; }
+  svg.ico.fold { fill: #3d4148; }
+  svg.ico.file { fill: #8a8e99; }
+  .tag { display: inline-block; max-width: 100px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; margin-right: 4px; padding: 2px 8px; border-radius: 10px; background: var(--line); color: var(--text-2); font-size: 12px; }
+  .empty { padding: 48px 24px; text-align: center; color: var(--text-3); }
+
+  /* ---------- details panel ---------- */
+  #panel { width: 340px; flex: none; background: var(--white); overflow: auto; display: flex; flex-direction: column; }
+  .p-head { display: flex; align-items: flex-start; gap: 8px; padding: 14px 12px 12px 16px; }
+  .p-head h2 { flex: 1; margin: 6px 0 0; font-size: 18px; font-weight: 600; word-break: break-word; }
+  .p-preview { height: 130px; background: #eceef3; display: grid; place-items: center; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .p-preview svg { width: 72px; height: 72px; fill: #a3a6b1; }
+  .p-actions { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn-view { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 16px; border-radius: 8px; border: 1px solid #585c65; background: #585c65; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+  .btn-view:hover { background: #464b52; border-color: #464b52; }
+  .btn-light { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--white); color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn-light:hover { background: var(--hover); }
+  .p-section { padding: 16px; }
+  .p-section h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+  dl { margin: 0; }
+  dt { margin-top: 14px; font-size: 12px; color: var(--text-3); }
+  dd { margin: 3px 0 0; font-size: 14px; word-break: break-word; }
+
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 20; max-width: min(640px, calc(100vw - 32px)); display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px 12px 16px; border-radius: 4px; background: var(--text); color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,.25); line-height: 1.45; }
+  .toast.error { background: #fff; color: var(--text); border-left: 4px solid var(--red); }
+  .toast .msg { flex: 1; word-break: break-word; white-space: pre-line; }
+  .toast button { background: none; border: 0; color: inherit; cursor: pointer; padding: 0; opacity: .7; }
+</style>
+</head>
+<body>
+
+<!-- loading -->
+<div id="screenLoading" class="screen">
+  <div class="spinner"></div>
+  <p id="loadText">Connecting to Trimble Connect…</p>
+</div>
+
+<!-- message screen (error) -->
+<div id="screenMsg" class="screen hidden">
+  <h2 id="msgTitle"></h2>
+  <p id="msgText"></p>
+  <p id="msgDetail" class="detail"></p>
+</div>
+
+<!-- main -->
+<div id="screenMain" class="hidden">
+  <div class="page-head">
+    <h1>Better explorer by BJM</h1>
+    <span class="ver" id="ver"></span>
+  </div>
+  <div class="toolbar">
+    <div id="crumbs" class="crumbs"></div>
+    <div class="tools">
+      <span id="status" class="status hidden"><span class="mini-spin"></span><span id="statusText"></span></span>
+      <div id="search" class="search">
+        <input id="searchInput" type="text" placeholder="Search files and folders" autocomplete="off">
+        <button id="btnSearch" class="icon-btn" type="button" title="Search">
+          <svg class="i" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5Zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14Z"/></svg>
+        </button>
+      </div>
+      <button id="btnExpand" class="text-btn" type="button">Expand all</button>
+      <button id="btnCollapse" class="text-btn" type="button">Collapse all</button>
+      <button id="btnRefresh" class="icon-btn" type="button" title="Refresh">
+        <svg class="i" viewBox="0 0 24 24"><path d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35Z"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="bulk" class="bulk hidden">
+    <span id="bulkCount" class="cnt"></span>
+    <button id="bDownload" class="btn-primary" type="button">Download</button>
+    <button id="bClear" class="btn-secondary" type="button">Clear selection</button>
+  </div>
+  <div class="content">
+    <div class="table-wrap">
+      <table>
+        <colgroup><col style="width:42%"><col style="width:18%"><col style="width:18%"><col style="width:9%"><col style="width:13%"></colgroup>
+        <thead><tr>
+          <th data-key="name"><span class="thin"><input type="checkbox" id="cbAll" class="cb" title="Select everything"><span>Name<span class="arr"></span></span></span></th>
+          <th data-key="modifiedBy">Modified by<span class="arr"></span></th>
+          <th data-key="modifiedOn">Modified on<span class="arr"></span></th>
+          <th data-key="size">Size<span class="arr"></span></th>
+          <th data-key="tags">Tags</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div id="empty" class="empty hidden"></div>
+    </div>
+
+    <aside id="panel" class="hidden">
+      <div class="p-head">
+        <h2 id="pName"></h2>
+        <button id="pClose" class="icon-btn" type="button" title="Close">
+          <svg class="i" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </div>
+      <div class="p-preview" id="pPreview"></div>
+      <div class="p-actions" id="pActions">
+        <button id="pView" class="btn-view" type="button">
+          <svg class="i" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5ZM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>
+          View in 3D
+        </button>
+        <button id="pDownload" class="btn-light" type="button">
+          <svg class="i" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7ZM5 18v2h14v-2H5Z"/></svg>
+          Download
+        </button>
+      </div>
+      <div class="p-section">
+        <h3>Details</h3>
+        <dl>
+          <dt>Version</dt><dd id="dVersion"></dd>
+          <dt>Size</dt><dd id="dSize"></dd>
+          <dt>Created</dt><dd id="dCreated"></dd>
+          <dt>Modified</dt><dd id="dModified"></dd>
+          <dt>Location</dt><dd id="dPath"></dd>
+        </dl>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden">
+  <span class="msg" id="toastMsg"></span>
+  <button id="toastClose" type="button" title="Close">✕</button>
+</div>
+
+<script type="module">
+import * as TCW from "https://esm.run/trimble-connect-workspace-api";
+
+/* =====================================================================
+   SETTINGS
+   ===================================================================== */
+const VERSION = "v2026-11-04.1";
+const HOSTS = {                                  // project.location -> Core API host
+  northamerica:  "https://app.connect.trimble.com",
+  europe:        "https://app21.connect.trimble.com",
+  unitedkingdom: "https://app22.connect.trimble.com",
+  asia:          "https://app31.connect.trimble.com",
+  australia:     "https://app32.connect.trimble.com",
+};
+const MASTER = "https://app.connect.trimble.com/tc/api/2.0";
+const LARGE_FILE = 300 * 1024 * 1024;           // bigger files are handed to the browser instead of being held in memory
+
+/* =====================================================================
+   STATE
+   ===================================================================== */
+let api = null, project = null, API = "";
+let token = null, tokenPromise = null, tokenWaiters = [];
+let rootId = null;
+const nodes = new Map();        // id -> node (see makeNode)
+const open = new Set();         // expanded folder ids
+const sel = new Set();          // selected FILE ids (folders show a derived state)
+let focusId = null;             // item shown in the details panel
+let sortKey = "name", sortDir = 1, query = "";
+let fullScan = false, bulkBusy = false;
+
+const $ = id => document.getElementById(id);
+const enc = encodeURIComponent;
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* =====================================================================
+   SCREENS + TOAST + STATUS
+   ===================================================================== */
+function showScreen(screen) {
+  for (const id of ["screenLoading", "screenMsg", "screenMain"]) $(id).classList.toggle("hidden", id !== screen);
+}
+function loading(text) { $("loadText").textContent = text; }
+function message(title, text, detail = "") {
+  $("msgTitle").textContent = title; $("msgText").textContent = text; $("msgDetail").textContent = detail;
+  showScreen("screenMsg");
+}
+let toastTimer = null;
+function toast(text, isError = false, ms) {
+  $("toastMsg").textContent = text;
+  $("toast").classList.toggle("error", isError);
+  $("toast").classList.remove("hidden");
+  clearTimeout(toastTimer);
+  const t = ms ?? (isError ? 12000 : 4000);
+  if (t > 0) toastTimer = setTimeout(() => $("toast").classList.add("hidden"), t);
+}
+$("toastClose").onclick = () => $("toast").classList.add("hidden");
+function setStatus(text) {
+  $("status").classList.toggle("hidden", !text);
+  $("statusText").textContent = text || "";
+}
+
+class ApiError extends Error {
+  constructor(status, what, body) {
+    let m = "";
+    try { const j = JSON.parse(body); m = j.message || j.errorcode || j.error || ""; } catch { m = (body || "").slice(0, 200); }
+    super(`${what} failed (HTTP ${status})${m ? ": " + m : ""}`);
+    this.status = status;
+  }
+}
+const errText = e => (e && e.message) ? e.message : String(e);
+
+/* =====================================================================
+   ACCESS TOKEN (Workspace API)
+   ===================================================================== */
+const isToken = t => typeof t === "string" && t.length > 20 && t !== "pending" && t !== "denied";
+
+function onEvent(event, args) {
+  if (event === "extension.accessToken") {
+    const t = typeof args?.data === "string" ? args.data : (typeof args === "string" ? args : "");
+    if (isToken(t)) { token = t; tokenWaiters.splice(0).forEach(w => w.ok(t)); }
+  }
+}
+
+function getToken() {
+  if (token) return Promise.resolve(token);
+  if (!tokenPromise) {
+    tokenPromise = (async () => {
+      const r = await api.extension.requestPermission("accesstoken");
+      if (r === "denied") throw new Error("Access to Trimble Connect data was denied. Reopen Better explorer and allow access.");
+      if (isToken(r)) { token = r; return r; }
+      if (token) return token;   // arrived through the event meanwhile
+      return await new Promise((ok, fail) => {
+        tokenWaiters.push({ ok });
+        setTimeout(() => fail(new Error("Waiting for permission timed out. Reopen Better explorer and allow access.")), 180000);
+      });
+    })().finally(() => { tokenPromise = null; });
+  }
+  return tokenPromise;
+}
+
+/* =====================================================================
+   CORE REST API
+   ===================================================================== */
+async function tc(path, { method = "GET", body, headers = {} } = {}, retried = false) {
+  const url = path.startsWith("http") ? path : API + path;
+  const h = { Accept: "application/json", Authorization: "Bearer " + await getToken(), ...headers };
+  let payload;
+  if (body !== undefined) { h["Content-Type"] = "application/json"; payload = JSON.stringify(body); }
+  const res = await fetch(url, { method, headers: h, body: payload });
+  if (res.status === 401 && !retried) { token = null; return tc(path, { method, body, headers }, true); }
+  const text = await res.text();
+  if (!res.ok) throw new ApiError(res.status, `${method} ${url.replace(/^https:\/\/[^/]+\/tc\/api\//, "").split("?")[0]}`, text);
+  let json = null;
+  try { json = text ? JSON.parse(text) : null; } catch { /* not JSON */ }
+  return { status: res.status, headers: res.headers, text, json };
+}
+const listOf = j => Array.isArray(j) ? j : (j?.items || j?.data || []);
+function nextLink(headers) {
+  const link = headers.get("link");
+  if (!link) return null;
+  const part = link.split(",").find(p => /rel="?next"?/i.test(p));
+  const m = part && part.match(/<([^>]+)>/);
+  return m ? m[1] : null;
+}
+
+async function pool(items, n, fn) {
+  let i = 0;
+  const worker = async () => { while (i < items.length) { const it = items[i++]; await fn(it); } };
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, worker));
+}
+
+/* ---- region ---- */
+async function resolveHost(location) {
+  const key = String(location || "").toLowerCase().replace(/[^a-z]/g, "");
+  if (HOSTS[key]) return HOSTS[key];
+  try {   // unknown location -> ask the public region list
+    const res = await fetch(MASTER + "/regions");
+    const regions = listOf(await res.json());
+    const hit = regions.find(r => String(r.location || "").toLowerCase().replace(/[^a-z]/g, "") === key);
+    const url = hit && (hit["tc-api"] || Object.values(hit).find(v => typeof v === "string" && v.includes("/tc/api/")));
+    if (url) return new URL(url).origin;
+  } catch { /* fall through */ }
+  return HOSTS.northamerica;
+}
+
+/* ---- folder listing (with paging) ---- */
+async function listItems(folderId) {
+  const out = [];
+  let url = `/folders/${enc(folderId)}/items`, range = null;
+  for (let guard = 0; url && guard < 100; guard++) {
+    const r = await tc(url, range ? { headers: { Range: range } } : {});
+    const page = listOf(r.json);
+    out.push(...page);
+    const link = nextLink(r.headers) || (!Array.isArray(r.json) && (r.json?.next || r.json?.links?.next?.href)) || null;
+    if (link) { url = link; range = null; continue; }
+    const cr = /(\d+)-(\d+)\/(\d+)/.exec(r.headers.get("content-range") || "");
+    if (cr && +cr[2] + 1 < +cr[3] && page.length) {
+      const from = +cr[2] + 1, size = +cr[2] - +cr[1] + 1;
+      range = `items=${from}-${from + size - 1}`;
+    } else url = null;
+  }
+  return out;
+}
+const itemType = it => String(it.type ?? it.tp ?? "").toUpperCase();
+const itemName = it => String(it.name ?? it.nm ?? "");
+const person = o => o ? ([o.firstName, o.lastName].filter(Boolean).join(" ").trim() || o.email || o.name || "") : "";
+const tagNames = t => Array.isArray(t) ? t.map(x => typeof x === "string" ? x : (x?.name || x?.label || "")).filter(Boolean) : [];
+
+/* =====================================================================
+   TREE DATA
+   ===================================================================== */
+function makeNode(it, parentId) {
+  const isF = itemType(it) === "FOLDER";
+  return {
+    id: String(it.id), name: itemName(it), type: isF ? "FOLDER" : "FILE", parentId,
+    createdBy: person(it.createdBy), createdOn: it.createdOn || "",
+    modifiedBy: person(it.modifiedBy), modifiedOn: it.modifiedOn || "",
+    size: it.size != null && Number.isFinite(+it.size) ? +it.size : null,
+    tags: tagNames(it.tags),
+    kids: isF ? [] : null, loaded: false, p: null, loading: false, details: null,
+  };
+}
+
+function loadChildren(fid) {
+  const f = nodes.get(fid);
+  if (f.loaded) return Promise.resolve();
+  if (!f.p) {
+    f.p = (async () => {
+      const items = await listItems(fid);
+      f.kids = [];
+      for (const it of items) {
+        const id = String(it.id ?? "");
+        if (!id) continue;
+        nodes.set(id, makeNode(it, fid));
+        f.kids.push(id);
+      }
+      f.loaded = true;
+    })().finally(() => { f.p = null; });
+  }
+  return f.p;
+}
+
+// load a folder and everything below it, level by level
+async function loadSubtree(fid) {
+  let level = [fid], count = 0, failed = 0;
+  while (level.length) {
+    const next = [];
+    await pool(level, 6, async id => {
+      try { await loadChildren(id); } catch { failed++; return; }
+      count++;
+      setStatus(`Loading folders… ${count}`);
+      for (const k of nodes.get(id).kids) if (nodes.get(k).type === "FOLDER") next.push(k);
+    });
+    level = next;
+  }
+  setStatus("");
+  if (failed) toast(`${failed} folder(s) could not be read and were skipped.`, true);
+  if (fid === rootId && !failed) fullScan = true;
+  return !failed;
+}
+
+function newRoot(name) {
+  nodes.clear();
+  nodes.set(rootId, { id: rootId, name, type: "FOLDER", parentId: null, createdBy: "", createdOn: "", modifiedBy: "", modifiedOn: "",
+                      size: null, tags: [], kids: [], loaded: false, p: null, loading: false, details: null });
+}
+
+const pathNames = id => {
+  const out = [];
+  for (let n = nodes.get(id); n && n.id !== rootId; n = nodes.get(n.parentId)) out.unshift(n.name);
+  return out;
+};
+const descFileIds = id => {
+  const out = [];
+  const walk = fid => { for (const k of nodes.get(fid).kids || []) { const c = nodes.get(k); c.type === "FOLDER" ? walk(k) : out.push(k); } };
+  walk(id);
+  return out;
+};
+const statsMemo = new Map();
+function stats(id) {
+  if (statsMemo.has(id)) return statsMemo.get(id);
+  let total = 0, s = 0;
+  for (const k of nodes.get(id).kids || []) {
+    const c = nodes.get(k);
+    if (c.type === "FOLDER") { const t = stats(k); total += t.total; s += t.sel; }
+    else { total++; if (sel.has(k)) s++; }
+  }
+  const r = { total, sel: s };
+  statsMemo.set(id, r);
+  return r;
+}
+
+/* =====================================================================
+   FORMAT + SORT
+   ===================================================================== */
+function fmtDate(s) {
+  if (!s) return "";
+  const d = new Date(s);
+  if (isNaN(d)) return s;
+  return d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) + " " +
+         d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+}
+function fmtSize(b) {
+  if (b == null) return "";
+  if (b < 1024) return b + " B";
+  const u = ["KB", "MB", "GB", "TB"];
+  let v = b / 1024, i = 0;
+  while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+  return v.toFixed(2) + " " + u[i];
+}
+const byName = (a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" });
+function sortedKids(pid) {
+  const list = (nodes.get(pid).kids || []).map(id => nodes.get(id));
+  const val = n => sortKey === "modifiedBy" ? n.modifiedBy.toLowerCase()
+                 : sortKey === "modifiedOn" ? n.modifiedOn
+                 : sortKey === "size" ? (n.size ?? -1) : null;
+  return list.sort((a, b) => {
+    if (a.type !== b.type) return a.type === "FOLDER" ? -1 : 1;          // folders first
+    if (sortKey === "name") return sortDir * byName(a, b);
+    const x = val(a), y = val(b);
+    if (x < y) return -sortDir;
+    if (x > y) return sortDir;
+    return byName(a, b);
+  });
+}
+
+/* =====================================================================
+   RENDER
+   ===================================================================== */
+const CHEVRON = '<svg viewBox="0 0 24 24"><path d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6-6-6Z"/></svg>';
+const FOLDER_ICON = '<svg class="ico fold" viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2Z"/></svg>';
+const FILE_ICON = '<svg class="ico file" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6Zm-1 7V3.5L18.5 9H13Z"/></svg>';
+
+// search: which nodes stay visible (matches + their ancestors) and which ancestors are forced open
+function computeMatches(q) {
+  const visible = new Set(), force = new Set();
+  for (const n of nodes.values()) {
+    if (n.id === rootId || !n.name.toLowerCase().includes(q)) continue;
+    visible.add(n.id);
+    for (let p = nodes.get(n.parentId); p && p.id !== rootId; p = nodes.get(p.parentId)) { visible.add(p.id); force.add(p.id); }
+  }
+  return { visible, force };
+}
+
+function render() {
+  statsMemo.clear();
+  const q = query.trim().toLowerCase();
+  const match = q ? computeMatches(q) : null;
+  const isOpen = id => match ? (match.force.has(id) || open.has(id)) : open.has(id);
+
+  const rows = [];
+  const walk = (pid, depth) => {
+    for (const n of sortedKids(pid)) {
+      if (match && !match.visible.has(n.id)) continue;
+      rows.push([n, depth]);
+      if (n.type === "FOLDER" && isOpen(n.id)) walk(n.id, depth + 1);
+    }
+  };
+  walk(rootId, 0);
+
+  $("rows").innerHTML = rows.map(([n, d]) => {
+    const isF = n.type === "FOLDER";
+    const st = isF ? stats(n.id) : null;
+    const checked = isF ? (st.total > 0 && st.sel === st.total) : sel.has(n.id);
+    const ind = isF && st.sel > 0 && st.sel < st.total;
+    const expanded = isF && isOpen(n.id);
+    return `<tr data-id="${esc(n.id)}" class="${isF ? "folder " : ""}${checked ? "sel " : ""}${n.id === focusId ? "focus" : ""}">
+      <td class="name"><div class="cell" style="padding-left:${8 + d * 22}px">
+        <input type="checkbox" class="cb" data-cb="${esc(n.id)}" ${checked ? "checked" : ""} ${ind ? 'data-ind="1"' : ""} aria-label="Select">
+        ${isF ? `<button type="button" class="tog${expanded ? " open" : ""}" data-tog="${esc(n.id)}">${n.loading ? '<span class="mini-spin"></span>' : CHEVRON}</button>` : '<span class="tog-gap"></span>'}
+        ${isF ? FOLDER_ICON : FILE_ICON}<span class="nm" title="${esc(n.name)}">${esc(n.name)}</span>
+      </div></td>
+      <td>${esc(n.modifiedBy)}</td>
+      <td>${esc(fmtDate(n.modifiedOn))}</td>
+      <td>${esc(fmtSize(n.size))}</td>
+      <td>${n.tags.map(t => `<span class="tag" title="${esc(t)}">${esc(t)}</span>`).join("")}</td>
+    </tr>`;
+  }).join("");
+  document.querySelectorAll('#rows input.cb[data-ind="1"]').forEach(el => { el.indeterminate = true; });
+
+  const empty = $("empty");
+  const root = nodes.get(rootId);
+  empty.classList.toggle("hidden", rows.length > 0);
+  empty.textContent = q ? "No files or folders match your search." : root.loaded ? "This project has no files yet." : "";
+
+  // header: select-all state + sort arrows
+  const all = stats(rootId);
+  $("cbAll").checked = all.total > 0 && all.sel === all.total;
+  $("cbAll").indeterminate = all.sel > 0 && all.sel < all.total;
+  document.querySelectorAll("th[data-key]").forEach(th => {
+    const on = th.dataset.key === sortKey;
+    th.classList.toggle("active", on);
+    const arr = th.querySelector(".arr");
+    if (arr) arr.textContent = on ? (sortDir > 0 ? "↑" : "↓") : "";
+  });
+
+  // bulk bar
+  const n = sel.size;
+  $("bulk").classList.toggle("hidden", n === 0);
+  $("bulkCount").textContent = `${n} file${n === 1 ? "" : "s"} selected`;
+  $("bDownload").disabled = bulkBusy;
+
+  renderCrumbs();
+  if (focusId) fillPanel();
+}
+
+function renderCrumbs() {
+  const parts = focusId && nodes.has(focusId) ? pathNames(focusId) : [];
+  const items = ["Explorer", ...parts];
+  $("crumbs").innerHTML = items.map((p, i) =>
+    `<span class="${i === items.length - 1 ? "last" : ""}">${esc(p)}</span>`).join('<span class="sep">›</span>');
+}
+
+/* =====================================================================
+   INTERACTION: tree, selection, sort
+   ===================================================================== */
+async function toggleOpen(id) {
+  const n = nodes.get(id);
+  if (!n || n.type !== "FOLDER") return;
+  if (open.has(id)) { open.delete(id); render(); return; }
+  open.add(id);
+  if (!n.loaded) {
+    n.loading = true; render();
+    try { await loadChildren(id); }
+    catch (e) { toast(errText(e), true); open.delete(id); }
+    n.loading = false;
+  }
+  render();
+}
+
+async function toggleFolderSelection(id) {
+  setStatus("Loading folder contents…");
+  try { await loadSubtree(id); } finally { setStatus(""); }
+  const files = descFileIds(id);
+  if (!files.length) { toast("There are no files in this folder.", false); render(); return; }
+  const allOn = files.every(f => sel.has(f));
+  for (const f of files) allOn ? sel.delete(f) : sel.add(f);
+  render();
+}
+
+$("rows").onclick = e => {
+  const cb = e.target.closest("input.cb");
+  if (cb) {
+    e.preventDefault();
+    const id = cb.dataset.cb, n = nodes.get(id);
+    if (!n) return;
+    if (n.type === "FILE") { sel.has(id) ? sel.delete(id) : sel.add(id); render(); }
+    else toggleFolderSelection(id);
+    return;
+  }
+  const tog = e.target.closest("[data-tog]");
+  if (tog) { toggleOpen(tog.dataset.tog); return; }
+  const tr = e.target.closest("tr");
+  if (tr) focusNode(tr.dataset.id);
+};
+$("rows").ondblclick = e => {
+  const tr = e.target.closest("tr");
+  if (tr && !e.target.closest("input.cb, [data-tog]") && nodes.get(tr.dataset.id)?.type === "FOLDER") toggleOpen(tr.dataset.id);
+};
+$("cbAll").onclick = e => { e.preventDefault(); e.stopPropagation(); toggleFolderSelection(rootId); };
+
+document.querySelector("thead").onclick = e => {
+  const th = e.target.closest("th[data-key]");
+  if (!th || th.dataset.key === "tags" || e.target.closest("input.cb")) return;
+  if (sortKey === th.dataset.key) sortDir = -sortDir; else { sortKey = th.dataset.key; sortDir = 1; }
+  render();
+};
+
+$("bClear").onclick = () => { sel.clear(); render(); };
+
+$("btnExpand").onclick = async () => {
+  setStatus("Loading folders…");
+  try { await loadSubtree(rootId); } finally { setStatus(""); }
+  for (const n of nodes.values()) if (n.type === "FOLDER" && n.id !== rootId) open.add(n.id);
+  render();
+};
+$("btnCollapse").onclick = () => { open.clear(); render(); };
+
+$("btnRefresh").onclick = async () => {
+  const wasOpen = [...open];
+  setStatus("Refreshing…");
+  try {
+    newRoot(project.name || "Project");
+    fullScan = false;
+    await loadChildren(rootId);
+    const todo = new Set(wasOpen);
+    let progressed = true;
+    while (todo.size && progressed) {            // a folder exists again only after its parent is loaded
+      progressed = false;
+      for (const id of [...todo]) {
+        const n = nodes.get(id);
+        if (!n) continue;
+        try { await loadChildren(id); } catch { /* skip */ }
+        todo.delete(id); progressed = true;
+      }
+    }
+    open.clear();
+    wasOpen.filter(id => nodes.has(id)).forEach(id => open.add(id));
+    for (const id of [...sel]) if (!nodes.has(id)) sel.delete(id);
+    if (focusId && !nodes.has(focusId)) closePanel();
+  } catch (e) {
+    toast(errText(e), true);
+  } finally {
+    setStatus("");
+    render();
+  }
+};
+
+/* ---- search ---- */
+let searchTimer = null;
+$("btnSearch").onclick = () => {
+  const box = $("search");
+  if (box.classList.contains("open") && !$("searchInput").value) { box.classList.remove("open"); return; }
+  box.classList.add("open");
+  $("searchInput").focus();
+};
+$("searchInput").oninput = e => {
+  query = e.target.value;
+  render();
+  clearTimeout(searchTimer);
+  if (query.trim() && !fullScan) {               // searching needs the whole tree
+    searchTimer = setTimeout(async () => {
+      setStatus("Loading folders…");
+      try { await loadSubtree(rootId); } finally { setStatus(""); }
+      render();
+    }, 350);
+  }
+};
+$("searchInput").onkeydown = e => {
+  if (e.key === "Escape") { e.target.value = ""; query = ""; $("search").classList.remove("open"); render(); }
+};
+
+/* =====================================================================
+   DETAILS PANEL
+   ===================================================================== */
+async function focusNode(id) {
+  focusId = id;
+  $("panel").classList.remove("hidden");
+  render();
+  const n = nodes.get(id);
+  if (n && !n.details) await loadDetails(n);
+}
+function closePanel() {
+  focusId = null;
+  $("panel").classList.add("hidden");
+  render();
+}
+$("pClose").onclick = closePanel;
+
+async function loadDetails(n) {
+  try {
+    const j = (await tc(n.type === "FOLDER" ? `/folders/${enc(n.id)}` : `/files/${enc(n.id)}`)).json || {};
+    n.details = j;
+    if (n.size == null && j.size != null && Number.isFinite(+j.size)) n.size = +j.size;
+    n.createdBy = person(j.createdBy) || n.createdBy;
+    n.createdOn = j.createdOn || n.createdOn;
+    n.modifiedBy = person(j.modifiedBy) || n.modifiedBy;
+    n.modifiedOn = j.modifiedOn || n.modifiedOn;
+  } catch { n.details = {}; }
+  if (focusId === n.id) render();
+}
+
+function fillPanel() {
+  const n = nodes.get(focusId);
+  if (!n) { closePanel(); return; }
+  const isF = n.type === "FOLDER";
+  $("pName").textContent = n.name;
+  $("pPreview").innerHTML = isF ? FOLDER_ICON.replace('class="ico fold"', "") : FILE_ICON.replace('class="ico file"', "");
+  $("pActions").classList.toggle("hidden", isF);
+  const d = n.details || {};
+  $("dVersion").textContent = isF ? "—" : String(d.version ?? d.versionNumber ?? "—");
+  $("dSize").textContent = fmtSize(n.size) || "—";
+  const who = (date, by) => [fmtDate(date), by].filter(Boolean).join(" · ") || "—";
+  $("dCreated").textContent = who(n.createdOn, n.createdBy);
+  $("dModified").textContent = who(n.modifiedOn, n.modifiedBy);
+  $("dPath").textContent = "/" + pathNames(n.id).slice(0, -1).join("/");
+}
+
+$("pView").onclick = async () => {
+  const n = nodes.get(focusId);
+  if (!n || n.type !== "FILE") return;
+  try {
+    const ok = await api.extension.goTo("3dviewer", { projectId: project.id, modelId: n.id });
+    if (ok === false) toast("The 3D Viewer could not be opened.", true);
+  } catch (e) {
+    toast("The 3D Viewer could not be opened: " + errText(e), true);
+  }
+};
+
+/* =====================================================================
+   DOWNLOAD
+   ===================================================================== */
+async function downloadFile(id) {
+  const n = nodes.get(id);
+  const d = await tc(`/files/fs/${enc(id)}/downloadurl`);
+  const link = d.json?.url;
+  if (!link) throw new Error(`No download link for “${n.name}”.`);
+  const a = document.createElement("a");
+  a.rel = "noopener";
+  if (n.size != null && n.size > LARGE_FILE) {   // too big to hold in memory: let the browser fetch it
+    a.href = link; a.target = "_blank";
+  } else {
+    const res = await fetch(link);
+    if (!res.ok) throw new ApiError(res.status, `Download of “${n.name}”`, await res.text());
+    a.href = URL.createObjectURL(await res.blob());
+    a.download = n.name;
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  }
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+async function downloadMany(ids) {
+  if (bulkBusy || !ids.length) return;
+  bulkBusy = true; render();
+  let ok = 0, failed = 0, lastErr = "";
+  try {
+    for (let i = 0; i < ids.length; i++) {
+      toast(`Downloading ${i + 1} of ${ids.length}…`, false, 0);
+      try { await downloadFile(ids[i]); ok++; } catch (e) { failed++; lastErr = errText(e); }
+      if (i < ids.length - 1) await sleep(400);  // browsers dislike a burst of downloads
+    }
+  } finally {
+    bulkBusy = false; render();
+  }
+  if (failed) toast(`${ok} downloaded, ${failed} failed.\n${lastErr}`, true);
+  else toast(`${ok} file${ok === 1 ? "" : "s"} downloaded.`);
+}
+
+$("bDownload").onclick = () => downloadMany([...sel]);
+$("pDownload").onclick = () => { const n = nodes.get(focusId); if (n && n.type === "FILE") downloadMany([n.id]); };
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && focusId && document.activeElement !== $("searchInput")) closePanel();
+});
+
+/* =====================================================================
+   START
+   ===================================================================== */
+async function start() {
+  $("ver").textContent = VERSION;
+  try {
+    api = await TCW.connect(window.parent, onEvent, 30000);
+  } catch {
+    message("Not connected", "Open Better explorer from a Trimble Connect project.");
+    return;
+  }
+  try {
+    try {
+      await api.ui.setMenu({ title: "Better explorer by BJM", icon: new URL("icon.png", location.href).href, command: "be_open" });
+    } catch { /* optional */ }
+
+    loading("Waiting for access permission…");
+    await getToken();
+
+    loading("Reading project…");
+    project = await api.project.getProject();
+    API = (await resolveHost(project.location)) + "/tc/api/2.0";
+
+    const p = (await tc(`/projects/${enc(project.id)}`)).json || {};
+    rootId = p.rootId;
+    if (!rootId) throw new Error("The project root folder could not be found.");
+
+    loading("Reading folders…");
+    newRoot(project.name || "Project");
+    await loadChildren(rootId);
+    showScreen("screenMain");
+    render();
+  } catch (e) {
+    message("Something went wrong", errText(e));
+  }
+}
+
+start();
+</script>
+</body>
+</html>
