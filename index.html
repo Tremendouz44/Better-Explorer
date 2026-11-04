@@ -18,10 +18,10 @@
   :root {
     --blue: #0063a3; --blue-hover: #217cbb; --blue-press: #004f83; --blue-tint: #e0eefa;
     --text: #252a2e; --text-2: #464b52; --text-3: #6a6e79;
-    --line: #e0e1e9; --line-2: #cbcdd6;
+    --line: #e0e1e9; --line-2: #cbcdd6; --guide: #9da1ae;
     --bg: #f1f1f6; --white: #ffffff; --head: #f9f9fb;
     --selected: #dcedf9; --hover: #f5f5f9;
-    --red: #da212c;
+    --red: #da212c; --red-hover: #b51d25;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
@@ -54,65 +54,115 @@
   .search input { width: 0; opacity: 0; padding: 0; border: 1px solid transparent; height: 36px; font: inherit; color: var(--text); background: var(--white); transition: width .2s, opacity .2s; }
   .search.open input { width: 240px; opacity: 1; padding: 0 10px; border-color: var(--line-2); border-bottom-color: var(--text-3); }
   .search input:focus { outline: none; border-bottom: 2px solid var(--blue); }
-  .icon-btn { width: 36px; height: 36px; border: 0; background: none; border-radius: 50%; display: grid; place-items: center; color: var(--text); cursor: pointer; }
+  .icon-btn { width: 36px; height: 36px; border: 0; background: none; border-radius: 50%; display: grid; place-items: center; color: var(--text); cursor: pointer; flex: none; }
   .icon-btn:hover { background: var(--line); }
   .text-btn { height: 34px; padding: 0 12px; border: 0; background: none; border-radius: 4px; color: var(--blue); font-size: 14px; font-weight: 600; cursor: pointer; }
   .text-btn:hover { background: var(--blue-tint); }
-  .text-btn:disabled { opacity: .5; cursor: default; background: none; }
+  .addwrap { position: relative; margin-left: 8px; }
+  .menu { position: absolute; right: 0; top: 40px; z-index: 15; min-width: 180px; background: var(--white); border-radius: 4px; box-shadow: 0 4px 16px rgba(0,0,0,.22); padding: 6px 0; }
+  .menu button { display: block; width: 100%; text-align: left; padding: 10px 16px; border: 0; background: none; font-size: 14px; color: var(--text); cursor: pointer; }
+  .menu button:hover { background: var(--hover); }
 
   .bulk { display: flex; align-items: center; gap: 8px; height: 46px; margin-bottom: 8px; padding: 0 12px; background: var(--blue-tint); border-left: 4px solid var(--blue); }
   .bulk .cnt { font-weight: 600; margin-right: 8px; }
-  .btn-primary, .btn-secondary { height: 32px; padding: 0 16px; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn-primary, .btn-secondary, .btn-danger { height: 32px; padding: 0 16px; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; }
   .btn-primary { border: 1px solid var(--blue); background: var(--blue); color: #fff; }
   .btn-primary:hover { background: var(--blue-hover); border-color: var(--blue-hover); }
-  .btn-primary:disabled { opacity: .55; cursor: default; }
+  .btn-primary:disabled, .btn-danger:disabled, .btn-secondary:disabled { opacity: .55; cursor: default; }
   .btn-secondary { border: 1px solid var(--blue); background: var(--white); color: var(--blue); }
-  .btn-secondary:hover { background: var(--white); }
+  .btn-danger { border: 1px solid var(--red); background: var(--red); color: #fff; }
+  .btn-danger:hover { background: var(--red-hover); border-color: var(--red-hover); }
+  .btn-danger.outline { background: var(--white); color: var(--red); }
+  .btn-danger.outline:hover { background: #fdecee; }
 
   .content { flex: 1; min-height: 0; display: flex; gap: 12px; }
   .table-wrap { flex: 1; min-width: 0; overflow: auto; background: var(--white); }
-  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  th { position: sticky; top: 0; z-index: 1; background: var(--head); height: 48px; padding: 0 12px; text-align: left; font-weight: 600; color: var(--text-3); border-bottom: 1px solid var(--line-2); cursor: pointer; user-select: none; white-space: nowrap; }
+  table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+  th { position: sticky; top: 0; z-index: 2; background: var(--head); height: 48px; padding: 0 12px; text-align: left; font-weight: 600; color: var(--text-3); border-bottom: 1px solid var(--line-2); cursor: pointer; user-select: none; white-space: nowrap; }
   th.active { color: var(--text); }
   th .arr { margin-left: 6px; font-size: 13px; }
-  th .thin { display: inline-flex; align-items: center; gap: 12px; }
-  td { height: 44px; padding: 0 12px; border-bottom: 1px solid var(--line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
+  th .thin { display: inline-flex; align-items: center; gap: 8px; }
+  td { position: relative; height: 44px; padding: 0 12px; box-shadow: inset 0 -1px 0 var(--line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
   tbody tr { cursor: pointer; }
   tbody tr:hover td { background: var(--hover); }
   tbody tr.sel td { background: var(--selected); }
-  tbody tr.focus td:first-child { box-shadow: inset 3px 0 0 var(--blue); }
+  tbody tr.focus td:first-child { box-shadow: inset 3px 0 0 var(--blue), inset 0 -1px 0 var(--line); }
   td.name { color: var(--text); }
-  td.name .cell { display: flex; align-items: center; gap: 6px; overflow: hidden; }
+  td.name .cell { display: flex; align-items: center; gap: 4px; overflow: hidden; height: 100%; padding-left: 8px; }
   td.name .nm { overflow: hidden; text-overflow: ellipsis; }
   tr.folder td.name .nm { font-weight: 600; }
-  input.cb { width: 16px; height: 16px; margin: 0 6px 0 0; accent-color: var(--blue); cursor: pointer; flex: none; }
-  .tog, .tog-gap { width: 22px; height: 22px; flex: none; }
-  .tog { display: grid; place-items: center; border: 0; background: none; padding: 0; cursor: pointer; color: var(--text-2); border-radius: 4px; }
+  input.cb { width: 16px; height: 16px; margin: 0 8px 0 0; accent-color: var(--blue); cursor: pointer; flex: none; }
+  .tog, .tog-gap { width: 24px; height: 24px; flex: none; }
+  .tog { display: grid; place-items: center; border: 0; background: none; padding: 0; cursor: pointer; color: #3d4148; border-radius: 4px; }
   .tog:hover { background: var(--line); }
-  .tog svg { width: 18px; height: 18px; fill: currentColor; transition: transform .12s; }
+  .tog svg { width: 22px; height: 22px; fill: currentColor; transition: transform .12s; }
   .tog.open svg { transform: rotate(90deg); }
-  td.name svg.ico { width: 22px; height: 22px; flex: none; margin-right: 4px; }
+  .tog.none { visibility: hidden; }
+  td.name svg.ico { width: 22px; height: 22px; flex: none; margin: 0 4px 0 2px; }
   svg.ico.fold { fill: #3d4148; }
   svg.ico.file { fill: #8a8e99; }
+  /* tree guide lines (vertical rail + horizontal branch into each item) */
+  td.name i { position: absolute; background: var(--guide); pointer-events: none; }
+  td.name i.gv { top: 0; bottom: 0; width: 1px; }
+  td.name i.gt { top: 0; height: 50%; width: 1px; }
+  td.name i.gh { top: 50%; height: 1px; }
   .tag { display: inline-block; max-width: 100px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; margin-right: 4px; padding: 2px 8px; border-radius: 10px; background: var(--line); color: var(--text-2); font-size: 12px; }
   .empty { padding: 48px 24px; text-align: center; color: var(--text-3); }
 
   /* ---------- details panel ---------- */
   #panel { width: 340px; flex: none; background: var(--white); overflow: auto; display: flex; flex-direction: column; }
-  .p-head { display: flex; align-items: flex-start; gap: 8px; padding: 14px 12px 12px 16px; }
+  .p-head { display: flex; align-items: flex-start; gap: 4px; padding: 14px 8px 12px 16px; }
   .p-head h2 { flex: 1; margin: 6px 0 0; font-size: 18px; font-weight: 600; word-break: break-word; }
-  .p-preview { height: 130px; background: #eceef3; display: grid; place-items: center; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-  .p-preview svg { width: 72px; height: 72px; fill: #a3a6b1; }
-  .p-actions { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; gap: 10px; flex-wrap: wrap; }
-  .btn-view { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 16px; border-radius: 8px; border: 1px solid #585c65; background: #585c65; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+  .rename { flex: 1; display: flex; align-items: center; gap: 2px; min-width: 0; }
+  .rename input { flex: 1; min-width: 0; height: 36px; padding: 0 8px; font: inherit; font-weight: 600; color: var(--text); background: var(--white); border: 1px solid var(--line-2); border-bottom-color: var(--text-3); }
+  .rename input:focus { outline: none; border-bottom: 2px solid var(--blue); }
+  .p-preview { height: 120px; background: #eceef3; display: grid; place-items: center; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .p-preview svg { width: 64px; height: 64px; fill: #a3a6b1; }
+  .p-actions { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn-view, .btn-light { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .btn-view { border: 1px solid #585c65; background: #585c65; color: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
   .btn-view:hover { background: #464b52; border-color: #464b52; }
-  .btn-light { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--white); color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn-light { border: 1px solid var(--line-2); background: var(--white); color: var(--text); }
   .btn-light:hover { background: var(--hover); }
+  .btn-light.danger { color: var(--red); }
+  .btn-light.danger:hover { background: #fdecee; }
+  .btn-view svg.i, .btn-light svg.i { width: 18px; height: 18px; }
   .p-section { padding: 16px; }
+  .p-section + .p-section { border-top: 1px solid var(--line); }
   .p-section h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
   dl { margin: 0; }
   dt { margin-top: 14px; font-size: 12px; color: var(--text-3); }
   dd { margin: 3px 0 0; font-size: 14px; word-break: break-word; }
+  .cm { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .cm-h { font-size: 12px; color: var(--text-3); }
+  .cm-h b { color: var(--text); font-weight: 600; }
+  .cm-t { margin-top: 4px; white-space: pre-wrap; word-break: break-word; }
+  .cm-none { padding: 14px 0; color: var(--text-3); }
+  .cm-add { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+  .cm-add textarea { width: 100%; min-height: 64px; resize: vertical; padding: 8px 10px; font: inherit; color: var(--text); background: var(--white); border: 1px solid var(--line-2); border-bottom-color: var(--text-3); }
+  .cm-add textarea:focus { outline: none; border-bottom: 2px solid var(--blue); }
+
+  /* ---------- dialogs ---------- */
+  .overlay { position: fixed; inset: 0; z-index: 10; background: rgba(37,42,46,.45); display: grid; place-items: center; padding: 16px; }
+  .modal { width: 480px; max-width: 100%; max-height: calc(100vh - 32px); overflow: auto; background: #f6f6f9; border-radius: 4px; padding: 22px 26px; box-shadow: 0 8px 28px rgba(0,0,0,.25); }
+  .m-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .m-head h2 { margin: 0; font-size: 22px; font-weight: 600; }
+  .modal p { margin: 10px 0 0; line-height: 1.5; color: var(--text-2); }
+  .modal label { display: block; margin: 14px 0 5px; font-size: 12px; color: var(--text-2); }
+  .modal input[type=text] { width: 100%; height: 40px; padding: 0 10px; font: inherit; color: var(--text); background: var(--white); border: 1px solid var(--line-2); border-bottom-color: var(--text-3); }
+  .modal input[type=text]:focus { outline: none; border-bottom: 2px solid var(--blue); }
+  .m-list { max-height: 140px; overflow: auto; margin: 10px 0 0; padding: 8px 12px; background: var(--white); border: 1px solid var(--line); color: var(--text-2); font-size: 13px; line-height: 1.6; }
+  .tree { height: 260px; overflow: auto; background: var(--white); border: 1px solid var(--line-2); padding: 4px 0; margin-top: 10px; }
+  .t-row { display: flex; align-items: center; gap: 4px; height: 34px; padding-right: 8px; cursor: pointer; white-space: nowrap; }
+  .t-row:hover { background: var(--hover); }
+  .t-row.sel { background: var(--selected); font-weight: 600; }
+  .t-row.dis { color: #a3a6b1; cursor: default; }
+  .t-row.dis:hover { background: none; }
+  .t-row svg.ico { width: 20px; height: 20px; fill: #3d4148; margin-right: 4px; flex: none; }
+  .t-row.dis svg.ico { fill: #b9bcc6; }
+  .form-error { min-height: 20px; margin-top: 10px; font-size: 13px; color: var(--red); white-space: pre-line; }
+  .m-foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 12px; padding-top: 16px; border-top: 1px solid var(--line-2); }
+  .m-foot button { height: 38px; }
 
   .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 20; max-width: min(640px, calc(100vw - 32px)); display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px 12px 16px; border-radius: 4px; background: var(--text); color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,.25); line-height: 1.45; }
   .toast.error { background: #fff; color: var(--text); border-left: 4px solid var(--red); }
@@ -156,11 +206,21 @@
       <button id="btnRefresh" class="icon-btn" type="button" title="Refresh">
         <svg class="i" viewBox="0 0 24 24"><path d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35Z"/></svg>
       </button>
+      <div class="addwrap">
+        <button id="btnAdd" class="btn-primary" type="button">Add</button>
+        <div id="addMenu" class="menu hidden">
+          <button id="miUpload" type="button">Upload files</button>
+          <button id="miFolder" type="button">New folder</button>
+        </div>
+      </div>
+      <input id="fileInput" type="file" multiple class="hidden">
     </div>
   </div>
   <div id="bulk" class="bulk hidden">
     <span id="bulkCount" class="cnt"></span>
     <button id="bDownload" class="btn-primary" type="button">Download</button>
+    <button id="bMove" class="btn-secondary" type="button">Move to…</button>
+    <button id="bDelete" class="btn-danger outline" type="button">Delete</button>
     <button id="bClear" class="btn-secondary" type="button">Clear selection</button>
   </div>
   <div class="content">
@@ -182,6 +242,18 @@
     <aside id="panel" class="hidden">
       <div class="p-head">
         <h2 id="pName"></h2>
+        <div id="pRenameBox" class="rename hidden">
+          <input id="pRenameInput" type="text" autocomplete="off">
+          <button id="pRenameOk" class="icon-btn" type="button" title="Save name">
+            <svg class="i" viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17Z"/></svg>
+          </button>
+          <button id="pRenameCancel" class="icon-btn" type="button" title="Cancel">
+            <svg class="i" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+          </button>
+        </div>
+        <button id="pEdit" class="icon-btn" type="button" title="Rename">
+          <svg class="i" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25ZM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z"/></svg>
+        </button>
         <button id="pClose" class="icon-btn" type="button" title="Close">
           <svg class="i" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
         </button>
@@ -196,6 +268,14 @@
           <svg class="i" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7ZM5 18v2h14v-2H5Z"/></svg>
           Download
         </button>
+        <button id="pMove" class="btn-light" type="button">
+          <svg class="i" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2Zm-6 12v-3h-4v-2h4v-3l4 4-4 4Z"/></svg>
+          Move to…
+        </button>
+        <button id="pDelete" class="btn-light danger" type="button">
+          <svg class="i" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z"/></svg>
+          Delete
+        </button>
       </div>
       <div class="p-section">
         <h3>Details</h3>
@@ -207,7 +287,73 @@
           <dt>Location</dt><dd id="dPath"></dd>
         </dl>
       </div>
+      <div class="p-section">
+        <h3>Comments</h3>
+        <div id="cmList"></div>
+        <div class="cm-add">
+          <textarea id="cmInput" placeholder="Add a comment…"></textarea>
+          <button id="cmSend" class="btn-primary" type="button">Send</button>
+        </div>
+      </div>
     </aside>
+  </div>
+</div>
+
+<!-- Move dialog -->
+<div id="dlgMove" class="overlay hidden">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mvTitle">
+    <div class="m-head">
+      <h2 id="mvTitle">Move to…</h2>
+      <button class="icon-btn" type="button" data-close="dlgMove" title="Close">
+        <svg class="i" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+      </button>
+    </div>
+    <p id="mvInfo"></p>
+    <div id="mvTree" class="tree"></div>
+    <div id="mvError" class="form-error"></div>
+    <div class="m-foot">
+      <button class="btn-secondary" type="button" data-close="dlgMove">Cancel</button>
+      <button id="mvOk" class="btn-primary" type="button">Move here</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete dialog -->
+<div id="dlgDelete" class="overlay hidden">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dlTitle">
+    <div class="m-head">
+      <h2 id="dlTitle">Delete</h2>
+      <button class="icon-btn" type="button" data-close="dlgDelete" title="Close">
+        <svg class="i" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+      </button>
+    </div>
+    <p id="dlText"></p>
+    <div id="dlList" class="m-list"></div>
+    <div id="dlError" class="form-error"></div>
+    <div class="m-foot">
+      <button class="btn-secondary" type="button" data-close="dlgDelete">Cancel</button>
+      <button id="dlOk" class="btn-danger" type="button">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- New folder dialog -->
+<div id="dlgFolder" class="overlay hidden">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="nfTitle">
+    <div class="m-head">
+      <h2 id="nfTitle">New folder</h2>
+      <button class="icon-btn" type="button" data-close="dlgFolder" title="Close">
+        <svg class="i" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+      </button>
+    </div>
+    <p id="nfWhere"></p>
+    <label for="nfName">Name</label>
+    <input id="nfName" type="text" autocomplete="off" placeholder="Folder name">
+    <div id="nfError" class="form-error"></div>
+    <div class="m-foot">
+      <button class="btn-secondary" type="button" data-close="dlgFolder">Cancel</button>
+      <button id="nfOk" class="btn-primary" type="button">Create</button>
+    </div>
   </div>
 </div>
 
@@ -222,7 +368,7 @@ import * as TCW from "https://esm.run/trimble-connect-workspace-api";
 /* =====================================================================
    SETTINGS
    ===================================================================== */
-const VERSION = "v2026-11-04.1";
+const VERSION = "v2026-11-04.2";
 const HOSTS = {                                  // project.location -> Core API host
   northamerica:  "https://app.connect.trimble.com",
   europe:        "https://app21.connect.trimble.com",
@@ -232,6 +378,7 @@ const HOSTS = {                                  // project.location -> Core API
 };
 const MASTER = "https://app.connect.trimble.com/tc/api/2.0";
 const LARGE_FILE = 300 * 1024 * 1024;           // bigger files are handed to the browser instead of being held in memory
+const INDENT = 28, X0 = 32;                     // tree: indent per level, x where the tree starts (after the checkbox)
 
 /* =====================================================================
    STATE
@@ -244,7 +391,10 @@ const open = new Set();         // expanded folder ids
 const sel = new Set();          // selected FILE ids (folders show a derived state)
 let focusId = null;             // item shown in the details panel
 let sortKey = "name", sortDir = 1, query = "";
-let fullScan = false, bulkBusy = false;
+let fullScan = false, bulkBusy = false, renaming = false;
+let cm = { id: null, items: null, error: "" };   // comments of the item in the panel
+let moveJob = null, deleteJob = null, folderJob = null;
+const pk = { open: new Set(), sel: null };       // folder picker of the Move dialog
 
 const $ = id => document.getElementById(id);
 const enc = encodeURIComponent;
@@ -383,20 +533,26 @@ const itemType = it => String(it.type ?? it.tp ?? "").toUpperCase();
 const itemName = it => String(it.name ?? it.nm ?? "");
 const person = o => o ? ([o.firstName, o.lastName].filter(Boolean).join(" ").trim() || o.email || o.name || "") : "";
 const tagNames = t => Array.isArray(t) ? t.map(x => typeof x === "string" ? x : (x?.name || x?.label || "")).filter(Boolean) : [];
+const itemPath = n => n.type === "FOLDER" ? `/folders/${enc(n.id)}` : `/files/${enc(n.id)}`;
 
 /* =====================================================================
    TREE DATA
    ===================================================================== */
+function applyItem(n, it) {
+  n.name = itemName(it);
+  n.createdBy = person(it.createdBy) || n.createdBy || "";
+  n.createdOn = it.createdOn || n.createdOn || "";
+  n.modifiedBy = person(it.modifiedBy);
+  n.modifiedOn = it.modifiedOn || "";
+  n.size = it.size != null && Number.isFinite(+it.size) ? +it.size : null;
+  n.tags = tagNames(it.tags);
+}
 function makeNode(it, parentId) {
   const isF = itemType(it) === "FOLDER";
-  return {
-    id: String(it.id), name: itemName(it), type: isF ? "FOLDER" : "FILE", parentId,
-    createdBy: person(it.createdBy), createdOn: it.createdOn || "",
-    modifiedBy: person(it.modifiedBy), modifiedOn: it.modifiedOn || "",
-    size: it.size != null && Number.isFinite(+it.size) ? +it.size : null,
-    tags: tagNames(it.tags),
-    kids: isF ? [] : null, loaded: false, p: null, loading: false, details: null,
-  };
+  const n = { id: String(it.id), type: isF ? "FOLDER" : "FILE", parentId,
+              kids: isF ? [] : null, loaded: false, p: null, loading: false, details: null };
+  applyItem(n, it);
+  return n;
 }
 
 function loadChildren(fid) {
@@ -416,6 +572,35 @@ function loadChildren(fid) {
     })().finally(() => { f.p = null; });
   }
   return f.p;
+}
+
+function removeSubtree(id) {
+  const n = nodes.get(id);
+  if (!n) return;
+  for (const k of n.kids || []) removeSubtree(k);
+  nodes.delete(id); sel.delete(id); open.delete(id);
+}
+
+// re-read one folder from Trimble Connect, keeping what is already loaded below it
+async function refreshFolder(fid) {
+  const f = nodes.get(fid);
+  if (!f) return;
+  const items = await listItems(fid);
+  const seen = new Set(), kids = [];
+  for (const it of items) {
+    const id = String(it.id ?? "");
+    if (!id) continue;
+    seen.add(id); kids.push(id);
+    const ex = nodes.get(id);
+    if (ex) { applyItem(ex, it); ex.parentId = fid; ex.details = null; }
+    else nodes.set(id, makeNode(it, fid));
+  }
+  for (const old of f.kids || []) {
+    const o = nodes.get(old);
+    if (!seen.has(old) && o && o.parentId === fid) removeSubtree(old);
+  }
+  f.kids = kids; f.loaded = true;
+  if (focusId && !nodes.has(focusId)) { focusId = null; $("panel").classList.add("hidden"); }
 }
 
 // load a folder and everything below it, level by level
@@ -505,7 +690,7 @@ function sortedKids(pid) {
 /* =====================================================================
    RENDER
    ===================================================================== */
-const CHEVRON = '<svg viewBox="0 0 24 24"><path d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6-6-6Z"/></svg>';
+const ARROW = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
 const FOLDER_ICON = '<svg class="ico fold" viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2Z"/></svg>';
 const FILE_ICON = '<svg class="ico file" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6Zm-1 7V3.5L18.5 9H13Z"/></svg>';
 
@@ -520,6 +705,15 @@ function computeMatches(q) {
   return { visible, force };
 }
 
+// vertical rails of the ancestors that still have siblings below, plus this item's own branch
+function guideHtml(d, lasts, isLast, isFolder) {
+  let h = "";
+  for (let j = 0; j < d - 1; j++) if (!lasts[j + 1]) h += `<i class="gv" style="left:${X0 + j * INDENT + 12}px"></i>`;
+  const x = X0 + (d - 1) * INDENT + 12;
+  h += `<i class="${isLast ? "gt" : "gv"}" style="left:${x}px"></i><i class="gh" style="left:${x}px;width:${INDENT - 12 + (isFolder ? 0 : 20)}px"></i>`;
+  return h;
+}
+
 function render() {
   statsMemo.clear();
   const q = query.trim().toLowerCase();
@@ -527,25 +721,27 @@ function render() {
   const isOpen = id => match ? (match.force.has(id) || open.has(id)) : open.has(id);
 
   const rows = [];
-  const walk = (pid, depth) => {
-    for (const n of sortedKids(pid)) {
-      if (match && !match.visible.has(n.id)) continue;
-      rows.push([n, depth]);
-      if (n.type === "FOLDER" && isOpen(n.id)) walk(n.id, depth + 1);
-    }
+  const walk = (pid, depth, lasts) => {
+    const kids = sortedKids(pid).filter(n => !match || match.visible.has(n.id));
+    kids.forEach((n, i) => {
+      const isLast = i === kids.length - 1;
+      rows.push({ n, depth, lasts, isLast });
+      if (n.type === "FOLDER" && isOpen(n.id)) walk(n.id, depth + 1, [...lasts, isLast]);
+    });
   };
-  walk(rootId, 0);
+  walk(rootId, 0, []);
 
-  $("rows").innerHTML = rows.map(([n, d]) => {
+  $("rows").innerHTML = rows.map(({ n, depth: d, lasts, isLast }) => {
     const isF = n.type === "FOLDER";
     const st = isF ? stats(n.id) : null;
     const checked = isF ? (st.total > 0 && st.sel === st.total) : sel.has(n.id);
     const ind = isF && st.sel > 0 && st.sel < st.total;
     const expanded = isF && isOpen(n.id);
     return `<tr data-id="${esc(n.id)}" class="${isF ? "folder " : ""}${checked ? "sel " : ""}${n.id === focusId ? "focus" : ""}">
-      <td class="name"><div class="cell" style="padding-left:${8 + d * 22}px">
+      <td class="name">${d >= 1 ? guideHtml(d, lasts, isLast, isF) : ""}<div class="cell">
         <input type="checkbox" class="cb" data-cb="${esc(n.id)}" ${checked ? "checked" : ""} ${ind ? 'data-ind="1"' : ""} aria-label="Select">
-        ${isF ? `<button type="button" class="tog${expanded ? " open" : ""}" data-tog="${esc(n.id)}">${n.loading ? '<span class="mini-spin"></span>' : CHEVRON}</button>` : '<span class="tog-gap"></span>'}
+        <span style="width:${d * INDENT}px;flex:none"></span>
+        ${isF ? `<button type="button" class="tog${expanded ? " open" : ""}" data-tog="${esc(n.id)}" title="${expanded ? "Collapse" : "Expand"}">${n.loading ? '<span class="mini-spin"></span>' : ARROW}</button>` : '<span class="tog-gap"></span>'}
         ${isF ? FOLDER_ICON : FILE_ICON}<span class="nm" title="${esc(n.name)}">${esc(n.name)}</span>
       </div></td>
       <td>${esc(n.modifiedBy)}</td>
@@ -576,7 +772,7 @@ function render() {
   const n = sel.size;
   $("bulk").classList.toggle("hidden", n === 0);
   $("bulkCount").textContent = `${n} file${n === 1 ? "" : "s"} selected`;
-  $("bDownload").disabled = bulkBusy;
+  for (const id of ["bDownload", "bMove", "bDelete"]) $(id).disabled = bulkBusy;
 
   renderCrumbs();
   if (focusId) fillPanel();
@@ -616,6 +812,7 @@ async function toggleFolderSelection(id) {
   render();
 }
 
+// click on a row: show it in the panel, and a folder also opens/closes (the arrow does the same)
 $("rows").onclick = e => {
   const cb = e.target.closest("input.cb");
   if (cb) {
@@ -626,14 +823,12 @@ $("rows").onclick = e => {
     else toggleFolderSelection(id);
     return;
   }
-  const tog = e.target.closest("[data-tog]");
-  if (tog) { toggleOpen(tog.dataset.tog); return; }
   const tr = e.target.closest("tr");
-  if (tr) focusNode(tr.dataset.id);
-};
-$("rows").ondblclick = e => {
-  const tr = e.target.closest("tr");
-  if (tr && !e.target.closest("input.cb, [data-tog]") && nodes.get(tr.dataset.id)?.type === "FOLDER") toggleOpen(tr.dataset.id);
+  if (!tr) return;
+  const n = nodes.get(tr.dataset.id);
+  if (!n) return;
+  focusNode(n.id);
+  if (n.type === "FOLDER") toggleOpen(n.id);
 };
 $("cbAll").onclick = e => { e.preventDefault(); e.stopPropagation(); toggleFolderSelection(rootId); };
 
@@ -712,13 +907,18 @@ $("searchInput").onkeydown = e => {
    DETAILS PANEL
    ===================================================================== */
 async function focusNode(id) {
+  const changed = focusId !== id;
+  if (changed) cancelRename();
   focusId = id;
   $("panel").classList.remove("hidden");
   render();
   const n = nodes.get(id);
-  if (n && !n.details) await loadDetails(n);
+  if (!n) return;
+  if (changed) loadComments(n);
+  if (!n.details) await loadDetails(n);
 }
 function closePanel() {
+  cancelRename();
   focusId = null;
   $("panel").classList.add("hidden");
   render();
@@ -727,7 +927,7 @@ $("pClose").onclick = closePanel;
 
 async function loadDetails(n) {
   try {
-    const j = (await tc(n.type === "FOLDER" ? `/folders/${enc(n.id)}` : `/files/${enc(n.id)}`)).json || {};
+    const j = (await tc(itemPath(n))).json || {};
     n.details = j;
     if (n.size == null && j.size != null && Number.isFinite(+j.size)) n.size = +j.size;
     n.createdBy = person(j.createdBy) || n.createdBy;
@@ -744,7 +944,8 @@ function fillPanel() {
   const isF = n.type === "FOLDER";
   $("pName").textContent = n.name;
   $("pPreview").innerHTML = isF ? FOLDER_ICON.replace('class="ico fold"', "") : FILE_ICON.replace('class="ico file"', "");
-  $("pActions").classList.toggle("hidden", isF);
+  $("pView").classList.toggle("hidden", isF);
+  $("pDownload").classList.toggle("hidden", isF);
   const d = n.details || {};
   $("dVersion").textContent = isF ? "—" : String(d.version ?? d.versionNumber ?? "—");
   $("dSize").textContent = fmtSize(n.size) || "—";
@@ -762,6 +963,98 @@ $("pView").onclick = async () => {
     if (ok === false) toast("The 3D Viewer could not be opened.", true);
   } catch (e) {
     toast("The 3D Viewer could not be opened: " + errText(e), true);
+  }
+};
+
+/* ---- rename (pencil next to the name) ---- */
+function nameProblem(name, parentId, exceptId) {
+  if (!name) return "Enter a name.";
+  if (/[\\/:*?"<>|]/.test(name)) return 'The name cannot contain any of these characters: \\ / : * ? " < > |';
+  if (/[. ]$/.test(name)) return "The name cannot end with a dot or a space.";
+  const p = nodes.get(parentId);
+  if (p && (p.kids || []).some(k => k !== exceptId && nodes.get(k)?.name.toLowerCase() === name.toLowerCase()))
+    return "An item with this name already exists in this folder.";
+  return "";
+}
+function startRename() {
+  const n = nodes.get(focusId);
+  if (!n || n.id === rootId) return;
+  renaming = true;
+  $("pName").classList.add("hidden"); $("pEdit").classList.add("hidden");
+  $("pRenameBox").classList.remove("hidden");
+  $("pRenameInput").value = n.name;
+  $("pRenameInput").focus();
+  $("pRenameInput").select?.();
+}
+function cancelRename() {
+  if (!renaming) return;
+  renaming = false;
+  $("pRenameBox").classList.add("hidden");
+  $("pName").classList.remove("hidden"); $("pEdit").classList.remove("hidden");
+}
+async function commitRename() {
+  const n = nodes.get(focusId);
+  if (!n || !renaming) return;
+  const name = $("pRenameInput").value.trim();
+  if (name === n.name) { cancelRename(); return; }
+  const problem = nameProblem(name, n.parentId, n.id);
+  if (problem) { toast(problem, true); return; }
+  $("pRenameOk").disabled = true;
+  try {
+    await tc(itemPath(n), { method: "PATCH", body: { name } });
+    cancelRename();
+    await refreshFolder(n.parentId);
+    toast(`Renamed to “${name}”.`);
+  } catch (e) {
+    toast(errText(e), true);
+  } finally {
+    $("pRenameOk").disabled = false;
+    render();
+  }
+}
+$("pEdit").onclick = startRename;
+$("pRenameOk").onclick = commitRename;
+$("pRenameCancel").onclick = cancelRename;
+$("pRenameInput").onkeydown = e => {
+  if (e.key === "Enter") commitRename();
+  else if (e.key === "Escape") { e.stopPropagation(); cancelRename(); }
+};
+
+/* ---- comments ---- */
+async function loadComments(n) {
+  cm = { id: n.id, items: null, error: "" };
+  renderComments();
+  try {
+    const r = await tc(`/comments?objectId=${enc(n.id)}&objectType=${n.type}`);
+    if (cm.id !== n.id) return;
+    cm.items = listOf(r.json).slice().sort((a, b) => String(a.createdOn || "").localeCompare(String(b.createdOn || "")));
+  } catch (e) {
+    if (cm.id !== n.id) return;
+    cm.items = []; cm.error = errText(e);
+  }
+  renderComments();
+}
+function renderComments() {
+  const box = $("cmList");
+  if (cm.items === null) { box.innerHTML = '<div class="cm-none">Loading…</div>'; return; }
+  if (cm.error) { box.innerHTML = `<div class="cm-none">Comments could not be loaded.</div>`; return; }
+  box.innerHTML = cm.items.length ? cm.items.map(c => `<div class="cm">
+      <div class="cm-h"><b>${esc(person(c.createdBy) || "Unknown")}</b> · ${esc(fmtDate(c.createdOn))}</div>
+      <div class="cm-t">${esc(c.description || "")}</div></div>`).join("")
+    : '<div class="cm-none">No comments yet.</div>';
+}
+$("cmSend").onclick = async () => {
+  const n = nodes.get(focusId), text = $("cmInput").value.trim();
+  if (!n || !text) return;
+  $("cmSend").disabled = true;
+  try {
+    await tc("/comments", { method: "POST", body: { objectId: n.id, objectType: n.type, description: text } });
+    $("cmInput").value = "";
+    await loadComments(n);
+  } catch (e) {
+    toast(errText(e), true);
+  } finally {
+    $("cmSend").disabled = false;
   }
 };
 
@@ -807,8 +1100,234 @@ async function downloadMany(ids) {
 $("bDownload").onclick = () => downloadMany([...sel]);
 $("pDownload").onclick = () => { const n = nodes.get(focusId); if (n && n.type === "FILE") downloadMany([n.id]); };
 
+/* =====================================================================
+   DIALOGS
+   ===================================================================== */
+const openDialog = id => $(id).classList.remove("hidden");
+const closeDialog = id => $(id).classList.add("hidden");
+document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => closeDialog(b.dataset.close));
+const anyDialogOpen = () => ["dlgMove", "dlgDelete", "dlgFolder"].find(id => !$(id).classList.contains("hidden"));
+
+/* =====================================================================
+   MOVE
+   ===================================================================== */
+function openMove(items) {
+  if (!items.length) return;
+  const exclude = new Set(items.filter(n => n.type === "FOLDER").map(n => n.id));
+  moveJob = { items, exclude, busy: false };
+  pk.open = new Set([rootId]); pk.sel = null;
+  $("mvInfo").textContent = items.length === 1 ? `Moving “${items[0].name}”. Choose the destination folder.`
+                                               : `Moving ${items.length} items. Choose the destination folder.`;
+  $("mvError").textContent = "";
+  renderPicker();
+  openDialog("dlgMove");
+  loadChildren(rootId).then(renderPicker).catch(e => { $("mvError").textContent = errText(e); });
+}
+function pickerExcluded(id) {
+  for (let n = nodes.get(id); n; n = nodes.get(n.parentId)) if (moveJob.exclude.has(n.id)) return true;
+  return false;
+}
+function renderPicker() {
+  if (!moveJob) return;
+  const rows = [];
+  const walk = (id, depth) => {
+    const n = nodes.get(id);
+    const kids = (n.kids || []).map(k => nodes.get(k)).filter(k => k.type === "FOLDER").sort(byName);
+    const expanded = pk.open.has(id), dis = pickerExcluded(id);
+    const hasKids = !n.loaded || kids.length > 0;
+    rows.push(`<div class="t-row${pk.sel === id ? " sel" : ""}${dis ? " dis" : ""}" data-id="${esc(id)}" style="padding-left:${6 + depth * 20}px">
+      <button type="button" class="tog${expanded ? " open" : ""}${hasKids ? "" : " none"}" data-tog="${esc(id)}">${n.loading ? '<span class="mini-spin"></span>' : ARROW}</button>
+      ${FOLDER_ICON}<span>${esc(id === rootId ? (project?.name || "Project") : n.name)}</span></div>`);
+    if (expanded) kids.forEach(k => walk(k.id, depth + 1));
+  };
+  walk(rootId, 0);
+  $("mvTree").innerHTML = rows.join("");
+}
+async function pickerToggle(id) {
+  const n = nodes.get(id);
+  if (!n) return;
+  if (pk.open.has(id)) { pk.open.delete(id); renderPicker(); return; }
+  pk.open.add(id);
+  if (!n.loaded) {
+    n.loading = true; renderPicker();
+    try { await loadChildren(id); } catch (e) { $("mvError").textContent = errText(e); pk.open.delete(id); }
+    n.loading = false;
+  }
+  renderPicker();
+}
+$("mvTree").onclick = e => {
+  const row = e.target.closest(".t-row");
+  if (!row) return;
+  const id = row.dataset.id;
+  if (e.target.closest("[data-tog]")) { pickerToggle(id); return; }
+  if (!row.classList.contains("dis")) { pk.sel = id; $("mvError").textContent = ""; }
+  pickerToggle(id);
+};
+
+$("mvOk").onclick = async () => {
+  if (!moveJob || moveJob.busy) return;
+  if (!pk.sel) { $("mvError").textContent = "Choose the destination folder."; return; }
+  const dest = pk.sel;
+  const items = moveJob.items.filter(n => nodes.has(n.id) && n.parentId !== dest);
+  if (!items.length) { $("mvError").textContent = "The selected items are already in this folder."; return; }
+  moveJob.busy = true; $("mvOk").disabled = true; $("mvError").textContent = "";
+  const parents = new Set(items.map(n => n.parentId));
+  let ok = 0; const failed = [];
+  for (let i = 0; i < items.length; i++) {
+    const n = items[i];
+    setStatus(`Moving ${i + 1} of ${items.length}…`);
+    try {
+      await tc(itemPath(n), { method: "PATCH", body: { parentId: dest } });
+      const back = (await tc(itemPath(n))).json || {};          // make sure Connect really moved it
+      if (back.parentId != null && String(back.parentId) !== String(dest)) throw new Error(`Trimble Connect did not move “${n.name}”.`);
+      ok++;
+    } catch (e) { failed.push(errText(e)); }
+  }
+  setStatus("");
+  try {
+    for (const p of parents) await refreshFolder(p);
+    if (nodes.get(dest)?.loaded) await refreshFolder(dest);
+    open.add(dest);
+  } catch (e) { failed.push(errText(e)); }
+  moveJob.busy = false; $("mvOk").disabled = false;
+  closeDialog("dlgMove"); moveJob = null;
+  render();
+  if (failed.length) toast(`${ok} moved, ${failed.length} failed.\n${failed[0]}`, true);
+  else toast(`${ok} item${ok === 1 ? "" : "s"} moved.`);
+};
+
+$("pMove").onclick = () => { const n = nodes.get(focusId); if (n) openMove([n]); };
+$("bMove").onclick = () => openMove([...sel].map(id => nodes.get(id)).filter(Boolean));
+
+/* =====================================================================
+   DELETE
+   ===================================================================== */
+function openDelete(items) {
+  if (!items.length) return;
+  deleteJob = { items, busy: false };
+  const folders = items.filter(n => n.type === "FOLDER").length;
+  $("dlTitle").textContent = items.length === 1 ? `Delete ${items[0].type === "FOLDER" ? "folder" : "file"}` : `Delete ${items.length} items`;
+  $("dlText").textContent = items.length === 1
+    ? (items[0].type === "FOLDER" ? `“${items[0].name}” and everything inside it will be deleted from the project.`
+                                  : `“${items[0].name}” will be deleted from the project.`)
+    : `${items.length} items will be deleted from the project${folders ? `, including everything inside ${folders === 1 ? "the folder" : "the folders"}` : ""}.`;
+  const shown = items.slice(0, 50).map(n => `<div>${esc(pathNames(n.id).join(" / "))}</div>`).join("");
+  $("dlList").innerHTML = shown + (items.length > 50 ? `<div>…and ${items.length - 50} more</div>` : "");
+  $("dlList").classList.toggle("hidden", items.length === 1);
+  $("dlError").textContent = "";
+  openDialog("dlgDelete");
+}
+$("dlOk").onclick = async () => {
+  if (!deleteJob || deleteJob.busy) return;
+  deleteJob.busy = true; $("dlOk").disabled = true; $("dlError").textContent = "";
+  const items = deleteJob.items.filter(n => nodes.has(n.id));
+  const parents = new Set(items.map(n => n.parentId));
+  let ok = 0; const failed = [];
+  for (let i = 0; i < items.length; i++) {
+    setStatus(`Deleting ${i + 1} of ${items.length}…`);
+    try { await tc(itemPath(items[i]), { method: "DELETE" }); ok++; }
+    catch (e) { failed.push(errText(e)); }
+  }
+  setStatus("");
+  try { for (const p of parents) if (nodes.has(p)) await refreshFolder(p); } catch (e) { failed.push(errText(e)); }
+  deleteJob.busy = false; $("dlOk").disabled = false;
+  closeDialog("dlgDelete"); deleteJob = null;
+  render();
+  if (failed.length) toast(`${ok} deleted, ${failed.length} failed.\n${failed[0]}`, true);
+  else toast(`${ok} item${ok === 1 ? "" : "s"} deleted.`);
+};
+$("pDelete").onclick = () => { const n = nodes.get(focusId); if (n) openDelete([n]); };
+$("bDelete").onclick = () => openDelete([...sel].map(id => nodes.get(id)).filter(Boolean));
+
+/* =====================================================================
+   ADD: upload files, new folder (goes into the folder open in the panel, else the root)
+   ===================================================================== */
+function targetFolderId() {
+  const n = nodes.get(focusId);
+  if (!n) return rootId;
+  return n.type === "FOLDER" ? n.id : n.parentId;
+}
+const whereText = id => "/" + pathNames(id).join("/");
+
+$("btnAdd").onclick = e => { e.stopPropagation(); $("addMenu").classList.toggle("hidden"); };
+document.addEventListener("click", () => $("addMenu").classList.add("hidden"));
+
+$("miUpload").onclick = () => { $("fileInput").value = ""; $("fileInput").click(); };
+$("fileInput").onchange = async e => {
+  const files = [...(e.target.files || [])];
+  if (!files.length) return;
+  const target = targetFolderId();
+  let ok = 0, dup = 0; const failed = [];
+  for (let i = 0; i < files.length; i++) {
+    toast(`Uploading ${i + 1} of ${files.length}: ${files[i].name}`, false, 0);
+    try { (await uploadFile(target, files[i])) === "duplicate" ? dup++ : ok++; }
+    catch (err) { failed.push(errText(err)); }
+  }
+  try { await refreshFolder(target); open.add(target); } catch { /* the tree can be refreshed manually */ }
+  render();
+  const parts = [`${ok} uploaded`]; if (dup) parts.push(`${dup} already there`);
+  if (failed.length) toast(`${parts.join(", ")}, ${failed.length} failed.\n${failed[0]}`, true);
+  else toast(`${parts.join(", ")}.`);
+};
+
+async function uploadFile(parentId, file) {
+  const init = (await tc(`/files/fs/upload?parentId=${enc(parentId)}&parentType=FOLDER`,
+                         { method: "POST", body: { name: file.name, contents: [{}] } })).json || {};
+  if (init.status === "DUPLICATE") return "duplicate";
+  const putUrl = init.contents?.[0]?.url;
+  if (!putUrl || !init.uploadId) throw new Error(`The upload of “${file.name}” could not be started.`);
+  const put = await fetch(putUrl, { method: "PUT", headers: { "Content-Type": "application/octet-stream" }, body: file });
+  if (!put.ok) throw new ApiError(put.status, `Upload of “${file.name}”`, await put.text());
+  const done = (await tc(`/files/fs/upload?uploadId=${enc(init.uploadId)}&wait=true`)).json || {};
+  if (!(done.fileId || done.id)) throw new Error(`The upload of “${file.name}” did not finish.`);
+  return "ok";
+}
+
+$("miFolder").onclick = () => {
+  folderJob = { parentId: targetFolderId(), busy: false };
+  $("nfWhere").textContent = "Create in: " + whereText(folderJob.parentId);
+  $("nfName").value = ""; $("nfError").textContent = "";
+  openDialog("dlgFolder");
+  $("nfName").focus();
+};
+async function createFolder() {
+  if (!folderJob || folderJob.busy) return;
+  const name = $("nfName").value.trim();
+  const problem = nodes.get(folderJob.parentId)?.loaded === false ? "" : nameProblem(name, folderJob.parentId, null);
+  const basic = nameProblem(name, "", null);
+  if (problem || basic) { $("nfError").textContent = problem || basic; return; }
+  folderJob.busy = true; $("nfOk").disabled = true; $("nfError").textContent = "";
+  try {
+    const f = (await tc("/folders", { method: "POST", body: { name, parentId: folderJob.parentId } })).json || {};
+    await refreshFolder(folderJob.parentId);
+    open.add(folderJob.parentId);
+    closeDialog("dlgFolder");
+    const parent = folderJob.parentId;
+    folderJob = null;
+    render();
+    if (f.id && nodes.has(String(f.id))) focusNode(String(f.id));
+    toast(`Folder “${name}” was created in ${whereText(parent)}.`);
+  } catch (e) {
+    $("nfError").textContent = errText(e);
+    if (folderJob) folderJob.busy = false;
+  } finally {
+    $("nfOk").disabled = false;
+  }
+}
+$("nfOk").onclick = createFolder;
+$("nfName").onkeydown = e => { if (e.key === "Enter") createFolder(); };
+
+/* =====================================================================
+   KEYBOARD
+   ===================================================================== */
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape" && focusId && document.activeElement !== $("searchInput")) closePanel();
+  if (e.key !== "Escape") return;
+  const dlg = anyDialogOpen();
+  if (dlg) { closeDialog(dlg); return; }
+  if (!$("addMenu").classList.contains("hidden")) { $("addMenu").classList.add("hidden"); return; }
+  const a = document.activeElement;
+  if (a && /^(INPUT|TEXTAREA)$/.test(a.tagName || "")) return;
+  if (focusId) closePanel();
 });
 
 /* =====================================================================
