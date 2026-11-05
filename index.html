@@ -180,6 +180,14 @@
   .suggest small { color: var(--text-3); margin-left: 6px; }
   .modal label.check { display: flex; align-items: center; gap: 10px; margin: 14px 0 0; font-size: 14px; color: var(--text); cursor: pointer; }
   .check input { width: 18px; height: 18px; accent-color: var(--blue); }
+  .linklist { margin-top: 10px; max-height: 260px; overflow: auto; border: 1px solid var(--line); background: var(--white); }
+  .lk { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 9px 12px; cursor: pointer; border-bottom: 1px solid var(--line); }
+  .lk:last-child { border-bottom: 0; }
+  .lk:hover { background: var(--hover); }
+  .lk .lk-name { grid-column: 1; font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lk .lk-url { grid-column: 1; font-size: 12px; color: var(--blue); word-break: break-all; }
+  .lk .lk-state { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 12px; color: var(--text-3); white-space: nowrap; }
+  .lk.done .lk-state { color: #1a7f37; font-weight: 600; }
   .note { font-size: 13px; color: var(--text-2); }
   .m-list { max-height: 140px; overflow: auto; margin: 10px 0 0; padding: 8px 12px; background: var(--white); border: 1px solid var(--line); color: var(--text-2); font-size: 13px; line-height: 1.6; }
   .tree { height: 260px; overflow: auto; background: var(--white); border: 1px solid var(--line-2); padding: 4px 0; margin-top: 10px; }
@@ -425,6 +433,7 @@
     </div>
     <div id="shDone" class="hidden">
       <p id="shDoneText"></p>
+      <div id="shList" class="linklist"></div>
       <textarea id="shLinks" readonly rows="5"></textarea>
       <div class="m-foot">
         <button id="shCopy" class="btn-secondary" type="button">Copy links</button>
@@ -486,7 +495,7 @@ import * as TCW from "https://esm.run/trimble-connect-workspace-api";
 /* =====================================================================
    SETTINGS
    ===================================================================== */
-const VERSION = "v2026-11-05.4";
+const VERSION = "v2026-11-05.5";
 const HOSTS = {                                  // project.location -> Core API host
   northamerica:  "https://app.connect.trimble.com",
   europe:        "https://app21.connect.trimble.com",
@@ -1496,11 +1505,28 @@ $("shSuggest").onmousedown = e => {
   if (u) { shareJob.chosen.push({ id: u.id, label: u.name }); $("shInput").value = ""; renderChips(); renderSuggest(); }
 };
 
+function collectShares(res, items) {
+  const out = new Map();                               // link -> file name
+  const nameOf = id => items.find(n => n.id === String(id))?.name || "";
+  const walk = v => {
+    if (Array.isArray(v)) v.forEach(walk);
+    else if (v && typeof v === "object") {
+      if (typeof v.url === "string" && /^\/s\/[A-Za-z0-9_-]{20,}$/.test(v.url)) out.set(API + v.url, v.name || nameOf(v.id));
+      Object.values(v).forEach(walk);
+    }
+  };
+  walk(res.json);
+  for (const l of collectLinks(res)) if (!out.has(l)) out.set(l, "");
+  return [...out].map(([link, name]) => ({ link, name }));
+}
 function collectLinks(res) {
   const out = new Set();
   const re = /https?:\/\/[^\s"'\\]+\/tc\/api\/2\.0\/s\/[^\s"'\\]+/g;
   const walk = v => {
-    if (typeof v === "string") { for (const m of v.match(re) || []) out.add(m); }
+    if (typeof v === "string") {
+      for (const m of v.match(re) || []) out.add(m);
+      if (/^\/s\/[A-Za-z0-9_-]{20,}$/.test(v)) out.add(API + v);       // Trimble Connect returns "/s/<token>"; the full link is API + that
+    }
     else if (Array.isArray(v)) v.forEach(walk);
     else if (v && typeof v === "object") Object.values(v).forEach(walk);
   };
@@ -1526,13 +1552,16 @@ $("shOk").onclick = async () => {
   shareJob.busy = true; $("shOk").disabled = true; $("shError").textContent = "";
   try {
     const res = await tc("/shares", { method: "POST", body });
-    const links = collectLinks(res);
+    const shares = collectShares(res, shareJob.items), links = shares.map(s => s.link);
     const n = shareJob.items.length;
     $("shForm").classList.add("hidden"); $("shDone").classList.remove("hidden");
     $("shCopy").classList.toggle("hidden", !links.length);
-    $("shLinks").classList.toggle("hidden", !links.length && !link);
+    $("shLinks").classList.toggle("hidden", !!links.length || !link);
+    $("shList").classList.toggle("hidden", !links.length);
+    $("shList").innerHTML = shares.map(s => `<div class="lk" data-link="${esc(s.link)}" title="Click to copy this link">`
+      + `${s.name ? `<span class="lk-name">${esc(s.name)}</span>` : ""}<span class="lk-url">${esc(s.link)}</span><span class="lk-state">Click to copy</span></div>`).join("");
     if (links.length) {
-      $("shDoneText").textContent = `Shared ${n} item${n === 1 ? "" : "s"}. ${shareJob.chosen.length ? "The people you entered were notified." : ""} Links:`;
+      $("shDoneText").textContent = `Shared ${n} item${n === 1 ? "" : "s"}. ${shareJob.chosen.length ? "The people you entered were notified. " : ""}Click a link to copy it.`;
       $("shLinks").value = links.join("\n");
     } else if (link) {
       $("shDoneText").textContent = `Shared ${n} item${n === 1 ? "" : "s"}, but Trimble Connect did not return a link in a form this tool recognises. Reply from Trimble Connect:`;
@@ -1547,10 +1576,29 @@ $("shOk").onclick = async () => {
     if (shareJob) shareJob.busy = false;
   }
 };
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); return true; } catch { /* fall back below */ }
+  const ta = document.createElement("textarea");
+  ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.appendChild(ta); ta.select();
+  let ok = false; try { ok = document.execCommand("copy"); } catch { /* not allowed */ }
+  ta.remove();
+  return ok;
+}
+$("shList").onclick = async e => {
+  const row = e.target.closest(".lk");
+  if (!row) return;
+  const ok = await copyText(row.dataset.link);
+  const st = row.querySelector(".lk-state");
+  row.classList.toggle("done", ok);
+  st.textContent = ok ? "Copied ✓" : "Copy failed";
+  setTimeout(() => { row.classList.remove("done"); st.textContent = "Click to copy"; }, 2500);
+  if (!ok) toast("The link could not be copied. Select it and press Ctrl+C.", true);
+};
+$("shCopy").textContent = "Copy all links";
 $("shCopy").onclick = async () => {
-  const t = $("shLinks").value;
-  try { await navigator.clipboard.writeText(t); toast("Links copied."); }
-  catch { $("shLinks").select(); try { document.execCommand("copy"); toast("Links copied."); } catch { toast("Press Ctrl+C to copy the selected links.", true); } }
+  const ok = await copyText($("shLinks").value);
+  toast(ok ? "All links copied." : "Press Ctrl+C to copy the links.", !ok);
 };
 $("pShare").onclick = () => { const n = nodes.get(focusId); if (n && n.id !== rootId) openShare([n]); };
 $("bShare").onclick = () => openShare([...sel].map(id => nodes.get(id)).filter(Boolean));
@@ -1909,7 +1957,23 @@ document.addEventListener("keydown", e => {
 /* =====================================================================
    START
    ===================================================================== */
+// If the browser kept an old copy of this page (Connect shows it in an iframe), fetch the new one and reload once.
+async function checkForNewVersion() {
+  if (location.protocol !== "https:") return;
+  try {
+    const r = await fetch(location.pathname + "?v=" + Date.now(), { cache: "no-store" });
+    const m = (await r.text()).match(/const VERSION = "([^"]+)"/);
+    if (!m || m[1] === VERSION) return;
+    let tried = ""; try { tried = sessionStorage.getItem("be.reload") || ""; } catch { /* optional */ }
+    if (tried === m[1]) return;                       // already reloaded once for this version: do not loop
+    try { sessionStorage.setItem("be.reload", m[1]); } catch { /* optional */ }
+    await fetch(location.pathname, { cache: "reload" });   // replaces the stale copy in the HTTP cache
+    location.reload();
+  } catch { /* offline or blocked: carry on with this version */ }
+}
+
 async function start() {
+  checkForNewVersion();
   $("ver").textContent = VERSION;
   try {
     api = await TCW.connect(window.parent, onEvent, 30000);
