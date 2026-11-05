@@ -205,6 +205,7 @@
   <h2 id="msgTitle"></h2>
   <p id="msgText"></p>
   <p id="msgDetail" class="detail"></p>
+  <button id="msgRetry" class="btn-primary hidden" type="button">Try again</button>
 </div>
 
 <!-- main -->
@@ -420,7 +421,7 @@ import * as TCW from "https://esm.run/trimble-connect-workspace-api";
 /* =====================================================================
    SETTINGS
    ===================================================================== */
-const VERSION = "v2026-11-05.1";
+const VERSION = "v2026-11-05.2";
 const HOSTS = {                                  // project.location -> Core API host
   northamerica:  "https://app.connect.trimble.com",
   europe:        "https://app21.connect.trimble.com",
@@ -459,8 +460,9 @@ function showScreen(screen) {
   for (const id of ["screenLoading", "screenMsg", "screenMain"]) $(id).classList.toggle("hidden", id !== screen);
 }
 function loading(text) { $("loadText").textContent = text; }
-function message(title, text, detail = "") {
+function message(title, text, detail = "", retry = false) {
   $("msgTitle").textContent = title; $("msgText").textContent = text; $("msgDetail").textContent = detail;
+  $("msgRetry").classList.toggle("hidden", !retry);
   showScreen("screenMsg");
 }
 let toastTimer = null;
@@ -520,13 +522,19 @@ function getToken() {
 /* =====================================================================
    CORE REST API
    ===================================================================== */
-async function tc(path, { method = "GET", body, headers = {} } = {}, retried = false) {
+async function tc(path, { method = "GET", body, headers = {} } = {}, retried = false, netTried = false) {
   const url = path.startsWith("http") ? path : API + path;
   const h = { Accept: "application/json", Authorization: "Bearer " + await getToken(), ...headers };
   let payload;
   if (body !== undefined) { h["Content-Type"] = "application/json"; payload = JSON.stringify(body); }
-  const res = await fetch(url, { method, headers: h, body: payload });
-  if (res.status === 401 && !retried) { token = null; return tc(path, { method, body, headers }, true); }
+  let res;
+  try { res = await fetch(url, { method, headers: h, body: payload }); }
+  catch (e) {                                       // network error (not an HTTP error): reads are tried once more
+    if (method === "GET" && !netTried) { await new Promise(r => setTimeout(r, 900)); return tc(path, { method, body, headers }, retried, true); }
+    let host = url; try { host = new URL(url).host; } catch { /* keep the url */ }
+    throw new Error(`Could not reach Trimble Connect (${host}): ${errText(e)}. Check your connection, VPN or ad blocker.`);
+  }
+  if (res.status === 401 && !retried) { token = null; return tc(path, { method, body, headers }, true, netTried); }
   const text = await res.text();
   if (!res.ok) throw new ApiError(res.status, `${method} ${url.replace(/^https:\/\/[^/]+\/tc\/api\//, "").split("?")[0]}`, text);
   let json = null;
@@ -1683,10 +1691,13 @@ async function start() {
     return;
   }
   try {
-    try {
-      await api.ui.setMenu({ title: "Better explorer by BJM", icon: new URL("icon.png", location.href).href, command: "be_open" });
-    } catch { /* optional */ }
-
+    await api.ui.setMenu({ title: "Better explorer by BJM", icon: new URL("icon.png", location.href).href, command: "be_open" });
+  } catch { /* optional */ }
+  await load();
+}
+async function load() {
+  showScreen("screenLoading");
+  try {
     loading("Waiting for access permission…");
     await getToken();
 
@@ -1704,9 +1715,10 @@ async function start() {
     showScreen("screenMain");
     render();
   } catch (e) {
-    message("Something went wrong", errText(e));
+    message("Something went wrong", errText(e), "", true);
   }
 }
+$("msgRetry").onclick = () => load();
 
 start();
 </script>
