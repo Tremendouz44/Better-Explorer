@@ -140,6 +140,19 @@
   .btn-view, .btn-light { display: flex; align-items: center; gap: 16px; width: 100%; height: 44px; padding: 0 20px; border: 0; border-radius: 0; background: none; box-shadow: none; color: var(--blue); font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
   .btn-view:hover, .btn-light:hover { background: var(--hover); }
   .btn-view svg.i, .btn-light svg.i { width: 24px; height: 24px; }
+  .back { display: block; width: 100%; height: 40px; padding: 0 16px; border: 0; border-bottom: 1px solid var(--line); background: var(--blue-tint); color: var(--blue); font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
+  .back:hover { background: var(--hover); }
+  .sel-title { flex: 1; min-width: 0; margin-top: 6px; }
+  .sel-title h2 { margin: 0; }
+  .sel-sub { margin-top: 2px; font-size: 13px; color: var(--text-3); }
+  .sel-list { padding: 4px 0 16px; }
+  .sel-grp { padding: 12px 16px 4px; font-size: 12px; color: var(--text-3); word-break: break-word; }
+  .sel-it { display: flex; align-items: center; gap: 4px; min-height: 34px; padding: 0 6px 0 16px; }
+  .sel-it:hover { background: var(--hover); }
+  .sel-it .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; cursor: pointer; }
+  .sel-it .icon-btn { width: 28px; height: 28px; }
+  .sel-it .icon-btn svg.i { width: 18px; height: 18px; }
+  .sel-more { padding: 10px 16px; font-size: 13px; color: var(--text-3); }
   .p-section { padding: 16px; }
   .p-section + .p-section { border-top: 1px solid var(--line); }
   .p-section h3 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
@@ -266,12 +279,7 @@
   </div>
   <div id="bulk" class="bulk off">
     <span id="bulkCount" class="cnt"></span>
-    <button id="bDownload" class="btn-primary" type="button">Download</button>
-    <button id="bShare" class="btn-secondary" type="button">Share</button>
-    <button id="bMove" class="btn-secondary" type="button">Move to…</button>
-    <button id="bArchive" class="btn-secondary" type="button" title="Move to the Archive folder, keeping the same folder path">Archive</button>
-    <button id="bDelete" class="btn-danger outline" type="button">Delete</button>
-    <button id="bInvert" class="btn-secondary" type="button">Invert selection</button>
+    <button id="bInvert" class="btn-secondary" type="button" title="Selected files become unselected and the other way round">Invert selection</button>
     <button id="bClear" class="btn-secondary" type="button">Clear selection</button>
   </div>
   <div class="content">
@@ -291,6 +299,8 @@
     </div>
 
     <aside id="panel" class="hidden">
+     <div id="itemPanel">
+      <button id="pBack" class="back hidden" type="button">← Back to selection</button>
       <div class="p-head">
         <h2 id="pName"></h2>
         <div id="pRenameBox" class="rename hidden">
@@ -354,6 +364,46 @@
           <button id="cmSend" class="btn-primary" type="button">Send</button>
         </div>
       </div>
+     </div>
+
+     <div id="selPanel" class="hidden">
+      <div class="p-head">
+        <div class="sel-title">
+          <h2 id="sTitle"></h2>
+          <div id="sSub" class="sel-sub"></div>
+        </div>
+        <button id="sClear" class="icon-btn" type="button" title="Clear selection">
+          <svg class="i" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </div>
+      <div class="p-actions" id="sActions">
+        <button id="sView" class="btn-view" type="button" title="Show the selected files in the viewer">
+          <svg class="i" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5ZM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>
+          View
+        </button>
+        <button id="sShare" class="btn-light" type="button">
+          <svg class="i" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92Z"/></svg>
+          Share
+        </button>
+        <button id="sDownload" class="btn-light" type="button">
+          <svg class="i" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7ZM5 18v2h14v-2H5Z"/></svg>
+          Download
+        </button>
+        <button id="sMove" class="btn-light" type="button">
+          <svg class="i" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2Zm-6 12v-3h-4v-2h4v-3l4 4-4 4Z"/></svg>
+          Move to…
+        </button>
+        <button id="sArchive" class="btn-light" type="button" title="Move to the Archive folder, keeping the same folder path">
+          <svg class="i" viewBox="0 0 24 24"><path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27ZM12 17.5 6.5 12H10v-2h4v2h3.5L12 17.5ZM5.12 5l.81-1h12l.94 1H5.12Z"/></svg>
+          Archive
+        </button>
+        <button id="sDelete" class="btn-light danger" type="button">
+          <svg class="i" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z"/></svg>
+          Delete
+        </button>
+      </div>
+      <div id="sList" class="sel-list"></div>
+     </div>
     </aside>
   </div>
 </div>
@@ -462,6 +512,26 @@
   </div>
 </div>
 
+<!-- Download (several files) dialog -->
+<div id="dlgDownload" class="overlay hidden">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dwTitle">
+    <div class="m-head">
+      <h2 id="dwTitle">Download</h2>
+      <button class="icon-btn" type="button" data-close="dlgDownload" title="Close">
+        <svg class="i" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+      </button>
+    </div>
+    <p id="dwText"></p>
+    <label class="check"><input id="dwTree" type="checkbox" checked> Keep the folder hierarchy down to each file</label>
+    <p class="note" id="dwNote"></p>
+    <div id="dwError" class="form-error"></div>
+    <div class="m-foot">
+      <button class="btn-secondary" type="button" data-close="dlgDownload">Cancel</button>
+      <button id="dwOk" class="btn-primary" type="button">Download ZIP</button>
+    </div>
+  </div>
+</div>
+
 <!-- New folder dialog -->
 <div id="dlgFolder" class="overlay hidden">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="nfTitle">
@@ -493,7 +563,7 @@ import * as TCW from "https://esm.run/trimble-connect-workspace-api";
 /* =====================================================================
    SETTINGS
    ===================================================================== */
-const VERSION = "v2026-11-05.12";
+const VERSION = "v2026-11-05.13";
 const HOSTS = {                                  // project.location -> Core API host
   northamerica:  "https://app.connect.trimble.com",
   europe:        "https://app21.connect.trimble.com",
@@ -731,7 +801,7 @@ async function refreshFolder(fid) {
     if (!seen.has(old) && o && o.parentId === fid) removeSubtree(old);
   }
   f.kids = kids; f.loaded = true;
-  if (focusId && !nodes.has(focusId)) { focusId = null; $("panel").classList.add("hidden"); }
+  if (focusId && !nodes.has(focusId)) focusId = null;
 }
 
 // load a folder and everything below it, level by level
@@ -907,10 +977,18 @@ function render() {
   const n = sel.size;
   $("bulk").classList.toggle("off", n === 0);
   $("bulkCount").textContent = `${n} file${n === 1 ? "" : "s"} selected`;
-  for (const id of ["bDownload", "bShare", "bMove", "bArchive", "bDelete", "bInvert"]) $(id).disabled = bulkBusy;
+  $("bInvert").disabled = bulkBusy;
+  for (const id of ["sView", "sShare", "sDownload", "sMove", "sArchive", "sDelete"]) $(id).disabled = bulkBusy;
 
   renderCrumbs();
-  if (focusId) fillPanel();
+  // side panel: the clicked item if there is one, otherwise the checked files
+  if (focusId && !nodes.has(focusId)) { cancelRename(); focusId = null; }
+  $("panel").classList.toggle("hidden", !focusId && n === 0);
+  $("itemPanel").classList.toggle("hidden", !focusId);
+  $("selPanel").classList.toggle("hidden", !!focusId || n === 0);
+  $("pBack").classList.toggle("hidden", !focusId || n === 0);
+  $("pBack").textContent = `← Back to selection (${n})`;
+  if (focusId) fillPanel(); else if (n) fillSelPanel();
   reapplyDrop();
 }
 
@@ -945,6 +1023,11 @@ async function toggleFolderSelection(id) {
   if (!files.length) { toast("There are no files in this folder.", false); render(); return; }
   const allOn = files.every(f => sel.has(f));
   for (const f of files) allOn ? sel.delete(f) : sel.add(f);
+  showSelection();
+}
+// ticking files hands the side panel over to the selection
+function showSelection() {
+  if (sel.size && focusId) { cancelRename(); focusId = null; }
   render();
 }
 
@@ -955,7 +1038,7 @@ $("rows").onclick = e => {
     e.preventDefault();
     const id = cb.dataset.cb, n = nodes.get(id);
     if (!n) return;
-    if (n.type === "FILE") { sel.has(id) ? sel.delete(id) : sel.add(id); render(); }
+    if (n.type === "FILE") { sel.has(id) ? sel.delete(id) : sel.add(id); showSelection(); }
     else toggleFolderSelection(id);
     return;
   }
@@ -990,7 +1073,7 @@ $("bInvert").onclick = async () => {
     if (visible) for (const id of sel) if (!visible.has(id)) next.add(id);   // files hidden by the search keep their state
     sel.clear(); next.forEach(id => sel.add(id));
   } catch (e) { toast(errText(e), true); }
-  finally { bulkBusy = false; setStatus(""); render(); }
+  finally { bulkBusy = false; setStatus(""); showSelection(); }
 };
 
 $("btnExpand").onclick = async () => {
@@ -1062,7 +1145,6 @@ async function focusNode(id) {
   const changed = focusId !== id;
   if (changed) cancelRename();
   focusId = id;
-  $("panel").classList.remove("hidden");
   render();
   const n = nodes.get(id);
   if (!n) return;
@@ -1072,10 +1154,10 @@ async function focusNode(id) {
 function closePanel() {
   cancelRename();
   focusId = null;
-  $("panel").classList.add("hidden");
-  render();
+  render();                                          // with files still checked, the selection panel takes its place
 }
 $("pClose").onclick = closePanel;
+$("pBack").onclick = closePanel;
 
 async function loadDetails(n) {
   try {
@@ -1108,6 +1190,52 @@ function fillPanel() {
   $("dModified").textContent = who(n.modifiedOn, n.modifiedBy);
   $("dPath").textContent = "/" + pathNames(n.id).slice(0, -1).join("/");
 }
+
+/* ---- side panel for the ticked files ---- */
+const SEL_SHOWN = 400;                               // longest list drawn in the panel
+const selFiles = () => [...sel].map(id => nodes.get(id)).filter(n => n && n.type === "FILE");
+function fillSelPanel() {
+  const files = selFiles();
+  const total = files.reduce((s, n) => s + (n.size || 0), 0);
+  $("sTitle").textContent = `${files.length} file${files.length === 1 ? "" : "s"} selected`;
+  $("sSub").textContent = total ? fmtSize(total) : "";
+  $("sView").classList.toggle("hidden", !(files.some(canView3D) || (files.length === 1 && canView2D(files[0]))));
+  const groups = new Map();                          // folder path -> files
+  for (const n of files) {
+    const p = "/" + pathNames(n.parentId).join("/");
+    if (!groups.has(p)) groups.set(p, []);
+    groups.get(p).push(n);
+  }
+  const x = '<svg class="i" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>';
+  let shown = 0, html = "";
+  for (const p of [...groups.keys()].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))) {
+    if (shown >= SEL_SHOWN) break;
+    html += `<div class="sel-grp">${esc(p === "/" ? "Project root" : p)}</div>`;
+    for (const n of groups.get(p).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))) {
+      if (shown++ >= SEL_SHOWN) break;
+      html += `<div class="sel-it" data-id="${esc(n.id)}"><span class="nm" data-open="${esc(n.id)}" title="${esc(n.name)}">${esc(n.name)}</span><button type="button" class="icon-btn" data-rm="${esc(n.id)}" title="Remove from selection">${x}</button></div>`;
+    }
+  }
+  if (files.length > shown) html += `<div class="sel-more">… and ${files.length - shown} more</div>`;
+  $("sList").innerHTML = html;
+}
+$("sList").onclick = e => {
+  const rm = e.target.closest("[data-rm]");
+  if (rm) { sel.delete(rm.dataset.rm); render(); return; }
+  const nm = e.target.closest("[data-open]");
+  if (nm) focusNode(nm.dataset.open);                // the file's own panel, with a way back to the selection
+};
+$("sClear").onclick = () => { sel.clear(); render(); };
+$("sView").onclick = async () => {
+  const files = selFiles();
+  try {
+    const models = files.filter(canView3D);
+    if (models.length) {
+      toast(`Opening ${models.length} file${models.length === 1 ? "" : "s"} in the 3D Viewer${models.length < files.length ? ` (${files.length - models.length} can’t be shown there)` : ""}…`);
+      await showIn3D(models);
+    } else if (files.length === 1 && canView2D(files[0])) await showIn2D(files[0]);
+  } catch (e) { toast(errText(e), true); }
+};
 
 // Which viewer opens which file type: Trimble Connect help, "Supported file formats" (browser)
 const SET = s => new Set(s.split(" "));
@@ -1345,17 +1473,23 @@ function buildZip(entries) {                         // entries: [{ path, blob, 
   return new Blob([...parts, ...central, end.buffer], { type: "application/zip" });
 }
 const ZIP_MAX = 3.5 * 1024 ** 3;
-async function downloadFolderZip(fid) {
-  const f = nodes.get(fid);
-  if (!f || ioBusy) { if (ioBusy) toast("Another operation is still running. Try again in a moment.", true); return; }
+// builds one ZIP from files [{ n, path }]; `prepare` (runs while the app is busy) returns that list
+// "Save as" window of the system (default folder: Downloads). Not allowed in every embedding (Connect shows this page in a
+// frame), then undefined is returned and the browser's normal download is used; null means the person cancelled.
+async function pickSave(name) {
+  if (typeof window.showSaveFilePicker !== "function") return undefined;
+  try {
+    return await window.showSaveFilePicker({ suggestedName: name, startIn: "downloads", types: [{ description: "ZIP archive", accept: { "application/zip": [".zip"] } }] });
+  } catch (e) { return e && e.name === "AbortError" ? null : undefined; }
+}
+async function runZip(zipName, prepare, handle) {
+  if (ioBusy) { toast("Another operation is still running. Try again in a moment.", true); return; }
   ioBusy = true;
   try {
-    setStatus(`Reading “${f.name}”…`);
-    await loadSubtree(fid);
-    const files = filesWithPaths(fid, f.name + "/");
-    if (!files.length) { toast(`There are no files in “${f.name}” to download.`, true); return; }
+    const files = await prepare();
+    if (!files || !files.length) return;
     const total = files.reduce((s, x) => s + (x.n.size || 0), 0);
-    if (total > ZIP_MAX || files.length > 60000) throw new Error(`“${f.name}” is too big for one ZIP in the browser (${fmtSize(total)}, ${files.length} files). Download it in smaller parts.`);
+    if (total > ZIP_MAX || files.length > 60000) throw new Error(`${zipName} would be too big for one ZIP in the browser (${fmtSize(total)}, ${files.length} files). Download it in smaller parts.`);
     const entries = []; const failed = []; let done = 0;
     await pool(files, 3, async ({ n, path }) => {
       try {
@@ -1371,19 +1505,86 @@ async function downloadFolderZip(fid) {
     });
     if (!entries.length) throw new Error(failed[0] || "Nothing could be downloaded.");
     entries.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }));
-    const url = URL.createObjectURL(buildZip(entries));
-    const a = document.createElement("a");
-    a.href = url; a.download = f.name + ".zip"; a.rel = "noopener";
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 120000);
-    if (failed.length) toast(`${f.name}.zip: ${entries.length} files, ${failed.length} could not be downloaded.\n${failed[0]}`, true);
-    else toast(`${f.name}.zip: ${entries.length} file${entries.length === 1 ? "" : "s"}.`);
+    const zip = buildZip(entries);
+    let saved = false;
+    if (handle) {
+      try { const w = await handle.createWritable(); await w.write(zip); await w.close(); saved = true; }
+      catch { /* fall back to the normal download below */ }
+    }
+    if (!saved) {
+      const url = URL.createObjectURL(zip);
+      const a = document.createElement("a");
+      a.href = url; a.download = zipName; a.rel = "noopener";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 120000);
+    }
+    if (failed.length) toast(`${zipName}: ${entries.length} files, ${failed.length} could not be downloaded.\n${failed[0]}`, true);
+    else toast(`${zipName}: ${entries.length} file${entries.length === 1 ? "" : "s"}.`);
   } catch (e) {
     toast(errText(e), true);
   } finally {
     ioBusy = false; setStatus("");
   }
 }
+async function downloadFolderZip(fid) {
+  const f = nodes.get(fid);
+  if (!f) return;
+  const handle = await pickSave(f.name + ".zip");      // first thing: the click must still count as a person's action
+  if (handle === null) return;
+  return runZip(f.name + ".zip", async () => {
+    setStatus(`Reading “${f.name}”…`);
+    await loadSubtree(fid);
+    const files = filesWithPaths(fid, f.name + "/");
+    if (!files.length) toast(`There are no files in “${f.name}” to download.`, true);
+    return files;
+  }, handle);
+}
+
+// ticked files: one file downloads as it is, several go into one ZIP (with their folders, or all side by side)
+const safeName = s => String(s || "").replace(/[\\/:*?"<>|]+/g, " ").trim();
+function openDownload(files) {
+  if (!files.length) return;
+  const total = files.reduce((s, n) => s + (n.size || 0), 0);
+  const one = files.length === 1;
+  $("dwText").textContent = one ? `“${files[0].name}”${total ? " (" + fmtSize(total) + ")" : ""}`
+    : `${files.length} files${total ? " (" + fmtSize(total) + ")" : ""} will be downloaded as one ZIP file.`;
+  $("dwNote").textContent = one ? "With it, the file is downloaded in a ZIP together with its folders. Without it, the file is downloaded as it is."
+    : "Without it, all files are placed side by side in the ZIP (a repeated name gets a number).";
+  $("dwError").textContent = "";
+  $("dwTree").checked = true;                          // keeping the hierarchy is the default every time
+  dwJob = { ids: files.map(n => n.id) };
+  openDialog("dlgDownload");
+}
+let dwJob = null;
+function selectionZipFiles(ids, keepTree) {
+  const used = new Set(), out = [];
+  for (const id of ids) {
+    const n = nodes.get(id);
+    if (!n) continue;
+    let path = keepTree ? pathNames(n.id).join("/") : n.name;
+    if (used.has(path.toLowerCase())) {                // same name twice: name (2).ext
+      const dot = n.name.lastIndexOf("."), base = dot > 0 ? n.name.slice(0, dot) : n.name, ext = dot > 0 ? n.name.slice(dot) : "";
+      const dir = path.slice(0, path.length - n.name.length);
+      for (let i = 2; ; i++) { path = `${dir}${base} (${i})${ext}`; if (!used.has(path.toLowerCase())) break; }
+    }
+    used.add(path.toLowerCase());
+    out.push({ n, path });
+  }
+  return out;
+}
+const two = x => String(x).padStart(2, "0");
+const zipStamp = () => { const d = new Date(); return `${d.getFullYear()}_${two(d.getMonth() + 1)}_${two(d.getDate())}`; };
+$("dwOk").onclick = async () => {
+  if (!dwJob) return;
+  const keep = $("dwTree").checked;
+  if (dwJob.ids.length === 1 && !keep) { const ids = dwJob.ids; dwJob = null; closeDialog("dlgDownload"); downloadMany(ids); return; }   // one file, no folders: the file itself
+  const files = selectionZipFiles(dwJob.ids, keep);
+  const name = `${safeName(project?.name) || "Project"}_${zipStamp()}.zip`;   // <project name>_YYYY_MM_DD.zip
+  const handle = await pickSave(name);                 // Windows "Save as" window, starting in Downloads
+  if (handle === null) return;                         // cancelled: the dialog stays open
+  dwJob = null; closeDialog("dlgDownload");
+  runZip(name, async () => files, handle);
+};
 
 async function downloadMany(ids) {
   if (bulkBusy || !ids.length) return;
@@ -1402,7 +1603,7 @@ async function downloadMany(ids) {
   else toast(`${ok} file${ok === 1 ? "" : "s"} downloaded.`);
 }
 
-$("bDownload").onclick = () => downloadMany([...sel]);
+$("sDownload").onclick = () => openDownload(selFiles());
 $("pDownload").onclick = () => { const n = nodes.get(focusId); if (!n) return; n.type === "FILE" ? downloadMany([n.id]) : downloadFolderZip(n.id); };
 
 /* =====================================================================
@@ -1411,7 +1612,7 @@ $("pDownload").onclick = () => { const n = nodes.get(focusId); if (!n) return; n
 const openDialog = id => $(id).classList.remove("hidden");
 const closeDialog = id => $(id).classList.add("hidden");
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => closeDialog(b.dataset.close));
-const anyDialogOpen = () => ["dlgMove", "dlgDelete", "dlgFolder", "dlgArchive", "dlgShare"].find(id => !$(id).classList.contains("hidden"));
+const anyDialogOpen = () => ["dlgMove", "dlgDelete", "dlgFolder", "dlgArchive", "dlgShare", "dlgDownload"].find(id => !$(id).classList.contains("hidden"));
 
 /* =====================================================================
    MOVE
@@ -1527,7 +1728,7 @@ async function moveItems(items, dest) {
 }
 
 $("pMove").onclick = () => { const n = nodes.get(focusId); if (n) openMove([n]); };
-$("bMove").onclick = () => openMove([...sel].map(id => nodes.get(id)).filter(Boolean));
+$("sMove").onclick = () => openMove([...sel].map(id => nodes.get(id)).filter(Boolean));
 
 /* =====================================================================
    DELETE
@@ -1567,7 +1768,7 @@ $("dlOk").onclick = async () => {
   else toast(`${ok} item${ok === 1 ? "" : "s"} deleted.`);
 };
 $("pDelete").onclick = () => { const n = nodes.get(focusId); if (n) openDelete([n]); };
-$("bDelete").onclick = () => openDelete([...sel].map(id => nodes.get(id)).filter(Boolean));
+$("sDelete").onclick = () => openDelete([...sel].map(id => nodes.get(id)).filter(Boolean));
 
 /* =====================================================================
    SHARE  (same request the native Explorer sends: POST /shares)
@@ -1786,7 +1987,7 @@ $("shCopy").onclick = async () => {
   toast(ok ? "All links copied." : "Press Ctrl+C to copy the links.", !ok);
 };
 $("pShare").onclick = () => { const n = nodes.get(focusId); if (n && n.id !== rootId) openShare([n]); };
-$("bShare").onclick = () => openShare([...sel].map(id => nodes.get(id)).filter(Boolean));
+$("sShare").onclick = () => openShare([...sel].map(id => nodes.get(id)).filter(Boolean));
 
 /* =====================================================================
    ARCHIVE
@@ -1881,7 +2082,7 @@ $("arOk").onclick = async () => {
   closeDialog("dlgArchive"); archJob = null;
 };
 $("pArchive").onclick = () => { const n = nodes.get(focusId); if (n && n.id !== rootId) openArchive([n]); };
-$("bArchive").onclick = () => openArchive(archiveUnitsFromSelection());
+$("sArchive").onclick = () => openArchive(archiveUnitsFromSelection());
 
 /* ---- compact rows ---- */
 function setCompact(on) {
