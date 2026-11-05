@@ -202,6 +202,10 @@
   .lk .lk-state { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 12px; color: var(--text-3); white-space: nowrap; }
   .lk.done .lk-state { color: #1a7f37; font-weight: 600; }
   .note { font-size: 13px; color: var(--text-2); }
+  .warn { margin-top: 12px; padding: 10px 12px; max-height: 150px; overflow: auto; background: #fff4e5; border-left: 4px solid #e08a00; color: var(--text); font-size: 13px; line-height: 1.5; word-break: break-word; }
+  .destline { display: flex; align-items: center; gap: 10px; }
+  .destline span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+  #dlgMove.over { z-index: 11; }
   .m-list { max-height: 140px; overflow: auto; margin: 10px 0 0; padding: 8px 12px; background: var(--white); border: 1px solid var(--line); color: var(--text-2); font-size: 13px; line-height: 1.6; }
   .tree { height: 260px; overflow: auto; background: var(--white); border: 1px solid var(--line-2); padding: 4px 0; margin-top: 10px; }
   .t-row { display: flex; align-items: center; gap: 4px; height: 34px; padding-right: 8px; cursor: pointer; white-space: nowrap; }
@@ -341,6 +345,10 @@
           <svg class="i" viewBox="0 0 24 24"><path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27ZM12 17.5 6.5 12H10v-2h4v2h3.5L12 17.5ZM5.12 5l.81-1h12l.94 1H5.12Z"/></svg>
           Archive
         </button>
+        <button id="pRenew" class="btn-light hidden" type="button" title="Move back out of the Archive folder">
+          <svg class="i" viewBox="0 0 24 24"><path d="M20.55 5.22l-1.39-1.68A1.51 1.51 0 0 0 18 3H6c-.47 0-.88.21-1.15.55L3.46 5.22C3.17 5.57 3 6.02 3 6.5V19a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.5c0-.48-.17-.93-.45-1.28ZM12 9.5l5.5 5.5H14v2h-4v-2H6.5L12 9.5ZM5.12 5l.82-1h12l.94 1H5.12Z"/></svg>
+          Renew
+        </button>
         <button id="pDelete" class="btn-light danger" type="button">
           <svg class="i" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z"/></svg>
           Delete
@@ -396,6 +404,10 @@
         <button id="sArchive" class="btn-light" type="button" title="Move to the Archive folder, keeping the same folder path">
           <svg class="i" viewBox="0 0 24 24"><path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27ZM12 17.5 6.5 12H10v-2h4v2h3.5L12 17.5ZM5.12 5l.81-1h12l.94 1H5.12Z"/></svg>
           Archive
+        </button>
+        <button id="sRenew" class="btn-light hidden" type="button" title="Move back out of the Archive folder">
+          <svg class="i" viewBox="0 0 24 24"><path d="M20.55 5.22l-1.39-1.68A1.51 1.51 0 0 0 18 3H6c-.47 0-.88.21-1.15.55L3.46 5.22C3.17 5.57 3 6.02 3 6.5V19a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6.5c0-.48-.17-.93-.45-1.28ZM12 9.5l5.5 5.5H14v2h-4v-2H6.5L12 9.5ZM5.12 5l.82-1h12l.94 1H5.12Z"/></svg>
+          Renew
         </button>
         <button id="sDelete" class="btn-light danger" type="button">
           <svg class="i" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z"/></svg>
@@ -512,6 +524,30 @@
   </div>
 </div>
 
+<!-- Renew dialog -->
+<div id="dlgRenew" class="overlay hidden">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rnTitle">
+    <div class="m-head">
+      <h2 id="rnTitle">Renew</h2>
+      <button class="icon-btn" type="button" data-close="dlgRenew" title="Close">
+        <svg class="i" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+      </button>
+    </div>
+    <p id="rnText"></p>
+    <label class="check"><input id="rnTree" type="checkbox" checked> Keep folder tree for renew</label>
+    <div id="rnDestBox" class="hidden">
+      <label>Return to</label>
+      <div class="destline"><span id="rnDest"></span><button id="rnPick" class="btn-secondary" type="button">Choose folder…</button></div>
+    </div>
+    <div id="rnWarn" class="warn hidden"></div>
+    <div id="rnError" class="form-error"></div>
+    <div class="m-foot">
+      <button class="btn-secondary" type="button" data-close="dlgRenew">Cancel</button>
+      <button id="rnOk" class="btn-primary" type="button">Renew</button>
+    </div>
+  </div>
+</div>
+
 <!-- Download (several files) dialog -->
 <div id="dlgDownload" class="overlay hidden">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dwTitle">
@@ -522,8 +558,7 @@
       </button>
     </div>
     <p id="dwText"></p>
-    <label class="check"><input id="dwTree" type="checkbox" checked> Keep the folder hierarchy down to each file</label>
-    <p class="note" id="dwNote"></p>
+    <label class="check"><input id="dwTree" type="checkbox" checked> Keep folder tree for download</label>
     <div id="dwError" class="form-error"></div>
     <div class="m-foot">
       <button class="btn-secondary" type="button" data-close="dlgDownload">Cancel</button>
@@ -563,7 +598,7 @@ import * as TCW from "https://esm.run/trimble-connect-workspace-api";
 /* =====================================================================
    SETTINGS
    ===================================================================== */
-const VERSION = "v2026-11-05.13";
+const VERSION = "v2026-11-05.14";
 const HOSTS = {                                  // project.location -> Core API host
   northamerica:  "https://app.connect.trimble.com",
   europe:        "https://app21.connect.trimble.com",
@@ -1179,6 +1214,8 @@ function fillPanel() {
   $("pName").textContent = n.name;
   $("pPreview").innerHTML = isF ? FOLDER_ICON.replace('class="ico fold"', "") : FILE_ICON.replace('class="ico file"', "");
   $("pView").classList.toggle("hidden", !(canView3D(n) || canView2D(n)));
+  $("pArchive").classList.toggle("hidden", isArchiveRoot(n) || inArchive(n));   // inside Archive: Renew instead
+  $("pRenew").classList.toggle("hidden", !inArchive(n));
   $("pView").title = isF ? "Show all 3D models in this folder in the 3D Viewer" : canView2D(n) ? "Opens in the 2D viewer" : "Opens in the 3D viewer";
   $("pDownload").title = isF ? "Download everything in this folder as one ZIP file" : "";
   $("pShare").title = isF ? "Share all files in this folder" : "";
@@ -1199,6 +1236,9 @@ function fillSelPanel() {
   const total = files.reduce((s, n) => s + (n.size || 0), 0);
   $("sTitle").textContent = `${files.length} file${files.length === 1 ? "" : "s"} selected`;
   $("sSub").textContent = total ? fmtSize(total) : "";
+  const units = archiveUnitsFromSelection();
+  $("sArchive").classList.toggle("hidden", !archivable(units).length);
+  $("sRenew").classList.toggle("hidden", !renewUnits(units).length);
   $("sView").classList.toggle("hidden", !(files.some(canView3D) || (files.length === 1 && canView2D(files[0]))));
   const groups = new Map();                          // folder path -> files
   for (const n of files) {
@@ -1548,8 +1588,6 @@ function openDownload(files) {
   const one = files.length === 1;
   $("dwText").textContent = one ? `“${files[0].name}”${total ? " (" + fmtSize(total) + ")" : ""}`
     : `${files.length} files${total ? " (" + fmtSize(total) + ")" : ""} will be downloaded as one ZIP file.`;
-  $("dwNote").textContent = one ? "With it, the file is downloaded in a ZIP together with its folders. Without it, the file is downloaded as it is."
-    : "Without it, all files are placed side by side in the ZIP (a repeated name gets a number).";
   $("dwError").textContent = "";
   $("dwTree").checked = true;                          // keeping the hierarchy is the default every time
   dwJob = { ids: files.map(n => n.id) };
@@ -1604,7 +1642,7 @@ async function downloadMany(ids) {
 }
 
 $("sDownload").onclick = () => openDownload(selFiles());
-$("pDownload").onclick = () => { const n = nodes.get(focusId); if (!n) return; n.type === "FILE" ? downloadMany([n.id]) : downloadFolderZip(n.id); };
+$("pDownload").onclick = () => { const n = nodes.get(focusId); if (!n) return; n.type === "FILE" ? openDownload([n]) : downloadFolderZip(n.id); };
 
 /* =====================================================================
    DIALOGS
@@ -1612,19 +1650,30 @@ $("pDownload").onclick = () => { const n = nodes.get(focusId); if (!n) return; n
 const openDialog = id => $(id).classList.remove("hidden");
 const closeDialog = id => $(id).classList.add("hidden");
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => closeDialog(b.dataset.close));
-const anyDialogOpen = () => ["dlgMove", "dlgDelete", "dlgFolder", "dlgArchive", "dlgShare", "dlgDownload"].find(id => !$(id).classList.contains("hidden"));
+const anyDialogOpen = () => ["dlgMove", "dlgDelete", "dlgFolder", "dlgArchive", "dlgRenew", "dlgShare", "dlgDownload"].find(id => !$(id).classList.contains("hidden"));
 
 /* =====================================================================
    MOVE
    ===================================================================== */
 function openMove(items) {
   if (!items.length) return;
+  $("mvTitle").textContent = "Move to…"; $("mvOk").textContent = "Move here"; $("dlgMove").classList.remove("over");
   const exclude = new Set(items.filter(n => n.type === "FOLDER").map(n => n.id));
   moveJob = { items, exclude, busy: false };
   pk.open = new Set([rootId]); pk.sel = null;
   $("mvInfo").textContent = items.length === 1 ? `Moving “${items[0].name}”. Choose the destination folder.`
                                                : `Moving ${items.length} items. Choose the destination folder.`;
   $("mvError").textContent = "";
+  renderPicker();
+  openDialog("dlgMove");
+  loadChildren(rootId).then(renderPicker).catch(e => { $("mvError").textContent = errText(e); });
+}
+// the same folder tree, only to choose a folder (used by Renew); onPick gets the folder id
+function openPickFolder(info, excludeIds, onPick) {
+  moveJob = { items: [], exclude: new Set(excludeIds), busy: false, onPick };
+  pk.open = new Set([rootId]); pk.sel = null;
+  $("mvTitle").textContent = "Choose folder"; $("mvOk").textContent = "Choose"; $("dlgMove").classList.add("over");
+  $("mvInfo").textContent = info; $("mvError").textContent = "";
   renderPicker();
   openDialog("dlgMove");
   loadChildren(rootId).then(renderPicker).catch(e => { $("mvError").textContent = errText(e); });
@@ -1674,6 +1723,7 @@ $("mvOk").onclick = async () => {
   if (!moveJob || moveJob.busy) return;
   if (!pk.sel) { $("mvError").textContent = "Choose the destination folder."; return; }
   const dest = pk.sel;
+  if (moveJob.onPick) { const cb = moveJob.onPick; closeDialog("dlgMove"); moveJob = null; cb(dest); return; }
   const items = moveJob.items.filter(n => nodes.has(n.id) && n.parentId !== dest);
   if (!items.length) { $("mvError").textContent = "The selected items are already in this folder."; return; }
   moveJob.busy = true; $("mvOk").disabled = true; $("mvError").textContent = "";
@@ -2024,6 +2074,19 @@ function openArchive(units) {
   $("arError").textContent = "";
   openDialog("dlgArchive");
 }
+// puts n into folder destId: moved if the name is free, merged if both are folders, otherwise skipped (and reported)
+async function placeItem(n, destId, st) {
+  await loadChildren(destId);
+  const same = nodes.get(destId).kids.map(k => nodes.get(k)).find(c => c && c.name.toLowerCase() === n.name.toLowerCase());
+  if (!same) {
+    st.touched.add(n.parentId); st.touched.add(destId);
+    await moveOne(n, destId); st.moved++;
+  } else if (same.type === "FOLDER" && n.type === "FOLDER") {   // the folder exists there already: merge into it
+    await loadChildren(n.id);
+    st.touched.add(n.id);
+    for (const k of [...nodes.get(n.id).kids]) { const c = nodes.get(k); if (c) await placeItem(c, same.id, st); }
+  } else st.skipped.push(`“${n.name}” already exists in ${whereText(destId)}.`);
+}
 async function archiveItems(units, archName) {
   if (ioBusy) return null;
   ioBusy = true;
@@ -2043,24 +2106,12 @@ async function archiveItems(units, archName) {
       }
       return id;
     };
-    const place = async (n, destId) => {
-      await loadChildren(destId);
-      const same = nodes.get(destId).kids.map(k => nodes.get(k)).find(c => c && c.name.toLowerCase() === n.name.toLowerCase());
-      if (!same) {
-        st.touched.add(n.parentId); st.touched.add(destId);
-        await moveOne(n, destId); st.moved++;
-      } else if (same.type === "FOLDER" && n.type === "FOLDER") {   // already archived once: merge into it
-        await loadChildren(n.id);
-        st.touched.add(n.id);
-        for (const k of [...nodes.get(n.id).kids]) { const c = nodes.get(k); if (c) await place(c, same.id); }
-      } else st.skipped.push(`“${n.name}” already exists in ${whereText(destId)}.`);
-    };
     for (let i = 0; i < todo.length; i++) {
       const n = todo[i];
       setStatus(`Archiving ${i + 1} of ${todo.length}…`);
       const top = topOf(n);
       if (top.type === "FOLDER" && top.name.toLowerCase() === low) { st.skipped.push(`“${n.name}” is already in the archive.`); continue; }
-      try { await place(n, await destFor(pathNames(n.parentId))); }
+      try { await placeItem(n, await destFor(pathNames(n.parentId)), st); }
       catch (e) { st.failed.push(errText(e)); }
     }
     for (const id of st.touched) { try { if (nodes.get(id)?.loaded) await refreshFolder(id); } catch { /* refresh by hand if needed */ } }
@@ -2081,8 +2132,127 @@ $("arOk").onclick = async () => {
   if (!res) { $("arError").textContent = "Another operation is still running. Try again in a moment."; return; }
   closeDialog("dlgArchive"); archJob = null;
 };
-$("pArchive").onclick = () => { const n = nodes.get(focusId); if (n && n.id !== rootId) openArchive([n]); };
-$("sArchive").onclick = () => openArchive(archiveUnitsFromSelection());
+// ---- Archive folder helpers: things inside it are renewed instead of archived ----
+const archiveRootNode = () => (nodes.get(rootId)?.kids || []).map(k => nodes.get(k)).find(c => c && c.type === "FOLDER" && c.name.toLowerCase() === ARCH_NAME.toLowerCase());
+const isArchiveRoot = n => { const a = archiveRootNode(); return !!a && a.id === n.id; };
+const inArchive = n => { const a = archiveRootNode(); return !!a && n.id !== a.id && isInside(n.id, a.id); };
+const archivable = units => units.filter(u => !isArchiveRoot(u) && !inArchive(u));
+function renewUnits(units) {
+  const out = [], a = archiveRootNode();
+  for (const u of units) {
+    if (a && u.id === a.id) { for (const k of a.kids || []) { const c = nodes.get(k); if (c) out.push(c); } }
+    else if (inArchive(u)) out.push(u);
+  }
+  return out;
+}
+$("pArchive").onclick = () => { const n = nodes.get(focusId); if (n && n.id !== rootId) openArchive(archivable([n])); };
+$("sArchive").onclick = () => openArchive(archivable(archiveUnitsFromSelection()));
+$("pRenew").onclick = () => { const n = nodes.get(focusId); if (n) openRenew(renewUnits([n])); };
+$("sRenew").onclick = () => openRenew(renewUnits(archiveUnitsFromSelection()));
+
+/* ---- Renew: back out of the Archive ---- */
+let rnJob = null;
+async function resolveFolderPath(segs) {             // existing folder for this path, or null (nothing is created)
+  let id = rootId;
+  for (const s of segs) {
+    await loadChildren(id);
+    const c = nodes.get(id).kids.map(k => nodes.get(k)).find(x => x && x.type === "FOLDER" && x.name.toLowerCase() === s.toLowerCase());
+    if (!c) return null;
+    id = c.id;
+  }
+  return id;
+}
+async function collectConflicts(u, destId, out) {
+  await loadChildren(destId);
+  const same = nodes.get(destId).kids.map(k => nodes.get(k)).find(c => c && c.name.toLowerCase() === u.name.toLowerCase());
+  if (!same) return;
+  if (same.type === "FOLDER" && u.type === "FOLDER") {
+    await loadChildren(u.id);
+    for (const k of nodes.get(u.id).kids) { const c = nodes.get(k); if (c) await collectConflicts(c, same.id, out); }
+  } else out.push(whereText(destId).replace(/\/$/, "") + "/" + u.name);
+}
+// shows in the dialog which items already exist at the destination (they will be skipped)
+async function checkRenewConflicts() {
+  if (!rnJob) return;
+  const job = rnJob, t = ++job.token, tree = $("rnTree").checked, out = [];
+  $("rnWarn").classList.add("hidden");
+  try {
+    for (const u of job.units) {
+      const d = tree ? await resolveFolderPath(pathNames(u.parentId).slice(1)) : job.dest;
+      if (d) await collectConflicts(u, d, out);
+    }
+  } catch { return; }
+  if (rnJob !== job || job.token !== t || !out.length) return;
+  const list = out.slice(0, 15).map(x => `• ${esc(x)}`).join("<br>");
+  $("rnWarn").innerHTML = `<b>${out.length === 1 ? "1 item already exists" : out.length + " items already exist"} at the destination and will be skipped:</b><br>${list}${out.length > 15 ? `<br>… and ${out.length - 15} more` : ""}`;
+  $("rnWarn").classList.remove("hidden");
+}
+function renewModeChanged() {
+  if (!rnJob) return;
+  const tree = $("rnTree").checked;
+  $("rnDestBox").classList.toggle("hidden", tree);
+  $("rnDest").textContent = rnJob.dest ? whereText(rnJob.dest) : "No folder chosen yet";
+  $("rnError").textContent = "";
+  checkRenewConflicts();
+}
+function openRenew(units) {
+  if (!units.length) return;
+  rnJob = { units, dest: null, busy: false, token: 0 };
+  const files = units.filter(n => n.type === "FILE").length, folders = units.length - files;
+  const what = units.length === 1 ? `“${units[0].name}”`
+    : [files ? `${files} file${files === 1 ? "" : "s"}` : "", folders ? `${folders} folder${folders === 1 ? "" : "s"}` : ""].filter(Boolean).join(" and ");
+  $("rnText").textContent = `${what} will be moved out of Archive.`;
+  $("rnTree").checked = true;                          // back to the original place is the default
+  renewModeChanged();
+  openDialog("dlgRenew");
+}
+$("rnTree").onchange = renewModeChanged;
+$("rnPick").onclick = () => {
+  const a = archiveRootNode();
+  openPickFolder("Choose the folder the items will be moved to.", a ? [a.id] : [], id => { if (rnJob) { rnJob.dest = id; renewModeChanged(); } });
+};
+async function renewItems(units, destId) {            // destId null: every item goes back to its original path
+  if (ioBusy) return null;
+  ioBusy = true;
+  const st = { moved: 0, folders: 0, skipped: [], failed: [], touched: new Set() };
+  try {
+    const cache = new Map();
+    const destFor = async segs => {
+      let id = rootId, key = "";
+      for (const s of segs) {
+        key += "/" + s.toLowerCase();
+        if (!cache.has(key)) cache.set(key, await ensureFolder(id, s, st));   // a missing folder is created again
+        id = cache.get(key);
+      }
+      return id;
+    };
+    for (let i = 0; i < units.length; i++) {
+      const n = units[i];
+      if (!nodes.has(n.id)) continue;
+      setStatus(`Renewing ${i + 1} of ${units.length}…`);
+      try { await placeItem(n, destId || await destFor(pathNames(n.parentId).slice(1)), st); }   // path inside Archive minus "Archive"
+      catch (e) { st.failed.push(errText(e)); }
+    }
+    for (const id of st.touched) { try { if (nodes.get(id)?.loaded) await refreshFolder(id); } catch { /* refresh by hand if needed */ } }
+  } catch (e) { st.failed.push(errText(e)); }
+  finally { ioBusy = false; setStatus(""); }
+  render();
+  const msg = `${st.moved} item${st.moved === 1 ? "" : "s"} renewed${st.folders ? `, ${st.folders} folder${st.folders === 1 ? "" : "s"} created` : ""}.`;
+  const problems = [...st.failed, ...st.skipped];
+  if (problems.length) toast(`${msg}\n${problems.length} not renewed: ${problems[0]}`, true);
+  else toast(msg);
+  return st;
+}
+$("rnOk").onclick = async () => {
+  if (!rnJob || rnJob.busy) return;
+  const tree = $("rnTree").checked;
+  if (!tree && !rnJob.dest) { $("rnError").textContent = "Choose the folder the items will be moved to."; return; }
+  rnJob.busy = true; $("rnOk").disabled = true; $("rnError").textContent = "";
+  const res = await renewItems(rnJob.units, tree ? null : rnJob.dest);
+  rnJob.busy = false; $("rnOk").disabled = false;
+  if (!res) { $("rnError").textContent = "Another operation is still running. Try again in a moment."; return; }
+  closeDialog("dlgRenew"); rnJob = null;
+};
 
 /* ---- compact rows ---- */
 function setCompact(on) {
