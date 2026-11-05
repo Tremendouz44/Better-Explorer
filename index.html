@@ -22,7 +22,10 @@
     --bg: #f1f1f6; --white: #ffffff; --head: #f9f9fb;
     --selected: #dcedf9; --hover: #f5f5f9;
     --red: #da212c; --red-hover: #b51d25;
+    --focusbg: #e8f2fb;
+    --rh: 44px; --cb: 32px; --hitw: 44px; --ico: 22px; --tri: 22px;     /* row height, checkbox, checkbox hit area, icons */
   }
+  body.compact { --rh: 22px; --cb: 16px; --hitw: 34px; --ico: 16px; --tri: 18px; }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
   body { font-family: "Open Sans", Arial, sans-serif; font-size: 14px; color: var(--text); background: var(--bg); }
@@ -41,11 +44,11 @@
 
   /* ---------- page ---------- */
   #screenMain { height: 100vh; display: flex; flex-direction: column; padding: 14px 16px 16px; }
-  .page-head { display: flex; align-items: baseline; gap: 10px; min-height: 36px; }
+  .page-head { display: flex; align-items: baseline; gap: 10px; min-height: 14px; }
   .page-head h1 { margin: 0; font-size: 20px; font-weight: 400; color: var(--text); }
   .ver { font-size: 11px; color: var(--text-3); }
   .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 48px; }
-  .crumbs { color: var(--text-3); font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .crumbs { flex: 1; margin: 0 12px; color: var(--text-3); font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   .crumbs .last { color: var(--text); }
   .crumbs .sep { margin: 0 8px; font-size: 13px; }
   .tools { display: flex; align-items: center; gap: 4px; flex: none; }
@@ -56,6 +59,7 @@
   .search input:focus { outline: none; border-bottom: 2px solid var(--blue); }
   .icon-btn { width: 36px; height: 36px; border: 0; background: none; border-radius: 50%; display: grid; place-items: center; color: var(--text); cursor: pointer; flex: none; }
   .icon-btn:hover { background: var(--line); }
+  .icon-btn.on { background: var(--blue-tint); color: var(--blue); }
   .text-btn { height: 34px; padding: 0 12px; border: 0; background: none; border-radius: 4px; color: var(--blue); font-size: 14px; font-weight: 600; cursor: pointer; }
   .text-btn:hover { background: var(--blue-tint); }
   .addwrap { position: relative; margin-left: 8px; }
@@ -63,6 +67,7 @@
   .menu button { display: block; width: 100%; text-align: left; padding: 10px 16px; border: 0; background: none; font-size: 14px; color: var(--text); cursor: pointer; }
   .menu button:hover { background: var(--hover); }
 
+  .bulk.off { visibility: hidden; }     /* keeps its space so the tree never jumps when it appears */
   .bulk { display: flex; align-items: center; gap: 8px; height: 46px; margin-bottom: 8px; padding: 0 12px; background: var(--blue-tint); border-left: 4px solid var(--blue); }
   .bulk .cnt { font-weight: 600; margin-right: 8px; }
   .btn-primary, .btn-secondary, .btn-danger { height: 32px; padding: 0 16px; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; }
@@ -81,24 +86,32 @@
   th { position: sticky; top: 0; z-index: 2; background: var(--head); height: 48px; padding: 0 12px; text-align: left; font-weight: 600; color: var(--text-3); border-bottom: 1px solid var(--line-2); cursor: pointer; user-select: none; white-space: nowrap; }
   th.active { color: var(--text); }
   th .arr { margin-left: 6px; font-size: 13px; }
-  th .thin { display: inline-flex; align-items: center; gap: 8px; }
-  td { position: relative; height: 44px; padding: 0 12px; box-shadow: inset 0 -1px 0 var(--line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
+  th .thin { display: flex; align-items: center; height: 48px; }
+  td { position: relative; height: var(--rh); padding: 0 12px; box-shadow: inset 0 -1px 0 var(--line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
   tbody tr { cursor: pointer; }
   tbody tr:hover td { background: var(--hover); }
   tbody tr.sel td { background: var(--selected); }
-  tbody tr.focus td:first-child { box-shadow: inset 3px 0 0 var(--blue), inset 0 -1px 0 var(--line); }
+  tbody tr.focus td { background: var(--focusbg); }
+  tbody tr.sel.focus td { background: var(--selected); }
+  tbody tr.focus td:first-child { box-shadow: inset 4px 0 0 var(--blue), inset 0 -1px 0 var(--line); }
   td.name { color: var(--text); }
-  td.name .cell { display: flex; align-items: center; overflow: hidden; height: 44px; padding-left: 8px; }
+  td.name { padding-left: 0; }
+  td.name .cell { display: flex; align-items: center; overflow: hidden; height: var(--rh); padding-left: 0; }
+  body.compact td { font-size: 13px; line-height: 1.2; }
   td.name .nm { overflow: hidden; text-overflow: ellipsis; }
   tr.folder td.name .nm { font-weight: 600; }
-  input.cb { width: 16px; height: 16px; margin: 0 8px 0 0; accent-color: var(--blue); cursor: pointer; flex: none; }
-  .tog, .tog-gap { width: 24px; height: 24px; flex: none; }
+  input.cb { width: var(--cb); height: var(--cb); margin: 0; accent-color: var(--blue); cursor: pointer; flex: none; }
+  /* the whole height of the row is the checkbox's click area */
+  .cbhit { width: var(--hitw); align-self: stretch; flex: none; display: grid; place-items: center; cursor: pointer; }
+  .cbhit:hover { background: rgba(0,99,163,.10); }
+  th:first-child { padding-left: 0; }
+  .tog, .tog-gap { width: 24px; height: min(24px, var(--rh)); flex: none; }
   .tog { display: grid; place-items: center; border: 0; background: none; padding: 0; cursor: pointer; color: #3d4148; border-radius: 4px; }
   .tog:hover { background: var(--line); }
-  .tog svg { width: 22px; height: 22px; fill: currentColor; transition: transform .12s; }
+  .tog svg { width: var(--tri); height: var(--tri); fill: currentColor; transition: transform .12s; }
   .tog.open svg { transform: rotate(90deg); }
   .tog.none { visibility: hidden; }
-  td.name svg.ico { width: 22px; height: 22px; flex: none; margin: 0 6px 0 2px; }
+  td.name svg.ico { width: var(--ico); height: var(--ico); flex: none; margin: 0 6px 0 2px; }
   svg.ico.fold { fill: #3d4148; }
   svg.ico.file { fill: #8a8e99; }
   /* tree guide lines: every indent level is a column that carries its own rail,
@@ -109,6 +122,7 @@
   .col i.gt { left: 11px; top: 0; height: calc(50% + 1px); width: 2px; }
   .col i.gh { left: 11px; top: calc(50% - 0px); height: 2px; width: 27px; }
   .col i.gh.file { width: 43px; }
+  body.compact .tag { padding: 0 8px; line-height: 16px; font-size: 11px; }
   .tag { display: inline-block; max-width: 100px; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; margin-right: 4px; padding: 2px 8px; border-radius: 10px; background: var(--line); color: var(--text-2); font-size: 12px; }
   .empty { padding: 48px 24px; text-align: center; color: var(--text-3); }
 
@@ -169,6 +183,11 @@
 
   .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 20; max-width: min(640px, calc(100vw - 32px)); display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px 12px 16px; border-radius: 4px; background: var(--text); color: #fff; box-shadow: 0 4px 16px rgba(0,0,0,.25); line-height: 1.45; }
   .toast.error { background: #fff; color: var(--text); border-left: 4px solid var(--red); }
+  /* drag & drop */
+  tbody tr.dropt td { background: var(--blue-tint) !important; box-shadow: inset 0 2px 0 var(--blue), inset 0 -2px 0 var(--blue); }
+  tbody tr.dropt td:first-child { box-shadow: inset 4px 0 0 var(--blue), inset 0 2px 0 var(--blue), inset 0 -2px 0 var(--blue); }
+  .table-wrap.droproot { outline: 2px dashed var(--blue); outline-offset: -2px; }
+  .drag-ghost { position: fixed; top: 0; left: 0; z-index: -1; padding: 6px 12px; border-radius: 4px; background: var(--blue); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; }
   .toast .msg { flex: 1; word-break: break-word; white-space: pre-line; }
   .toast button { background: none; border: 0; color: inherit; cursor: pointer; padding: 0; opacity: .7; }
 </style>
@@ -191,13 +210,10 @@
 <!-- main -->
 <div id="screenMain" class="hidden">
   <div class="page-head">
-    <h1>Better explorer by BJM</h1>
-    <span class="ver" id="ver"></span>
+    <span class="ver" id="ver" title="Better explorer by BJM"></span>
   </div>
   <div class="toolbar">
-    <div id="crumbs" class="crumbs"></div>
     <div class="tools">
-      <span id="status" class="status hidden"><span class="mini-spin"></span><span id="statusText"></span></span>
       <div id="search" class="search">
         <input id="searchInput" type="text" placeholder="Search files and folders" autocomplete="off">
         <button id="btnSearch" class="icon-btn" type="button" title="Search">
@@ -209,6 +225,13 @@
       <button id="btnRefresh" class="icon-btn" type="button" title="Refresh">
         <svg class="i" viewBox="0 0 24 24"><path d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35Z"/></svg>
       </button>
+      <button id="btnCompact" class="icon-btn" type="button" title="Compact rows">
+        <svg class="i" viewBox="0 0 24 24"><path d="M3 5h18v2H3V5Zm0 4h18v2H3V9Zm0 4h18v2H3v-2Zm0 4h18v2H3v-2Z"/></svg>
+      </button>
+    </div>
+    <div id="crumbs" class="crumbs"></div>
+    <div class="tools">
+      <span id="status" class="status hidden"><span class="mini-spin"></span><span id="statusText"></span></span>
       <div class="addwrap">
         <button id="btnAdd" class="btn-primary" type="button">Add</button>
         <div id="addMenu" class="menu hidden">
@@ -219,19 +242,20 @@
       <input id="fileInput" type="file" multiple class="hidden">
     </div>
   </div>
-  <div id="bulk" class="bulk hidden">
+  <div id="bulk" class="bulk off">
     <span id="bulkCount" class="cnt"></span>
     <button id="bDownload" class="btn-primary" type="button">Download</button>
     <button id="bMove" class="btn-secondary" type="button">Move to…</button>
+    <button id="bArchive" class="btn-secondary" type="button" title="Move to the Archive folder, keeping the same folder path">Archive</button>
     <button id="bDelete" class="btn-danger outline" type="button">Delete</button>
     <button id="bClear" class="btn-secondary" type="button">Clear selection</button>
   </div>
   <div class="content">
-    <div class="table-wrap">
+    <div class="table-wrap" id="tableWrap">
       <table>
         <colgroup><col style="width:42%"><col style="width:18%"><col style="width:18%"><col style="width:9%"><col style="width:13%"></colgroup>
         <thead><tr>
-          <th data-key="name"><span class="thin"><input type="checkbox" id="cbAll" class="cb" title="Select everything"><span>Name<span class="arr"></span></span></span></th>
+          <th data-key="name"><span class="thin"><span class="cbhit" id="cbAllHit" title="Select everything"><input type="checkbox" id="cbAll" class="cb" aria-label="Select everything"></span><span>Name<span class="arr"></span></span></span></th>
           <th data-key="modifiedBy">Modified by<span class="arr"></span></th>
           <th data-key="modifiedOn">Modified on<span class="arr"></span></th>
           <th data-key="size">Size<span class="arr"></span></th>
@@ -274,6 +298,10 @@
         <button id="pMove" class="btn-light" type="button">
           <svg class="i" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2Zm-6 12v-3h-4v-2h4v-3l4 4-4 4Z"/></svg>
           Move to…
+        </button>
+        <button id="pArchive" class="btn-light" type="button" title="Move to the Archive folder, keeping the same folder path">
+          <svg class="i" viewBox="0 0 24 24"><path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27ZM12 17.5 6.5 12H10v-2h4v2h3.5L12 17.5ZM5.12 5l.81-1h12l.94 1H5.12Z"/></svg>
+          Archive
         </button>
         <button id="pDelete" class="btn-light danger" type="button">
           <svg class="i" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12ZM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4Z"/></svg>
@@ -340,6 +368,27 @@
   </div>
 </div>
 
+<!-- Archive dialog -->
+<div id="dlgArchive" class="overlay hidden">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="arTitle">
+    <div class="m-head">
+      <h2 id="arTitle">Archive</h2>
+      <button class="icon-btn" type="button" data-close="dlgArchive" title="Close">
+        <svg class="i" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+      </button>
+    </div>
+    <p id="arText"></p>
+    <div id="arList" class="m-list"></div>
+    <label for="arName">Archive folder (at the top of the project)</label>
+    <input id="arName" type="text" autocomplete="off" placeholder="Archive">
+    <div id="arError" class="form-error"></div>
+    <div class="m-foot">
+      <button class="btn-secondary" type="button" data-close="dlgArchive">Cancel</button>
+      <button id="arOk" class="btn-primary" type="button">Archive</button>
+    </div>
+  </div>
+</div>
+
 <!-- New folder dialog -->
 <div id="dlgFolder" class="overlay hidden">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="nfTitle">
@@ -371,7 +420,7 @@ import * as TCW from "https://esm.run/trimble-connect-workspace-api";
 /* =====================================================================
    SETTINGS
    ===================================================================== */
-const VERSION = "v2026-11-04.3";
+const VERSION = "v2026-11-05.1";
 const HOSTS = {                                  // project.location -> Core API host
   northamerica:  "https://app.connect.trimble.com",
   europe:        "https://app21.connect.trimble.com",
@@ -393,7 +442,7 @@ const open = new Set();         // expanded folder ids
 const sel = new Set();          // selected FILE ids (folders show a derived state)
 let focusId = null;             // item shown in the details panel
 let sortKey = "name", sortDir = 1, query = "";
-let fullScan = false, bulkBusy = false, renaming = false;
+let fullScan = false, bulkBusy = false, renaming = false, ioBusy = false;
 let cm = { id: null, items: null, error: "" };   // comments of the item in the panel
 let moveJob = null, deleteJob = null, folderJob = null;
 const pk = { open: new Set(), sel: null };       // folder picker of the Move dialog
@@ -743,9 +792,9 @@ function render() {
     const checked = isF ? (st.total > 0 && st.sel === st.total) : sel.has(n.id);
     const ind = isF && st.sel > 0 && st.sel < st.total;
     const expanded = isF && isOpen(n.id);
-    return `<tr data-id="${esc(n.id)}" class="${isF ? "folder " : ""}${checked ? "sel " : ""}${n.id === focusId ? "focus" : ""}">
+    return `<tr data-id="${esc(n.id)}" draggable="true" class="${isF ? "folder " : ""}${checked ? "sel " : ""}${n.id === focusId ? "focus" : ""}">
       <td class="name"><div class="cell">
-        <input type="checkbox" class="cb" data-cb="${esc(n.id)}" ${checked ? "checked" : ""} ${ind ? 'data-ind="1"' : ""} aria-label="Select">
+        <span class="cbhit" data-cb="${esc(n.id)}"><input type="checkbox" class="cb" ${checked ? "checked" : ""} ${ind ? 'data-ind="1"' : ""} aria-label="Select"></span>
         ${colsHtml(d, lasts, isLast, isF)}
         ${isF ? `<button type="button" class="tog${expanded ? " open" : ""}" data-tog="${esc(n.id)}" title="${expanded ? "Collapse" : "Expand"}">${n.loading ? '<span class="mini-spin"></span>' : ARROW}</button>` : '<span class="tog-gap"></span>'}
         ${isF ? FOLDER_ICON : FILE_ICON}<span class="nm" title="${esc(n.name)}">${esc(n.name)}</span>
@@ -776,12 +825,13 @@ function render() {
 
   // bulk bar
   const n = sel.size;
-  $("bulk").classList.toggle("hidden", n === 0);
+  $("bulk").classList.toggle("off", n === 0);
   $("bulkCount").textContent = `${n} file${n === 1 ? "" : "s"} selected`;
-  for (const id of ["bDownload", "bMove", "bDelete"]) $(id).disabled = bulkBusy;
+  for (const id of ["bDownload", "bMove", "bArchive", "bDelete"]) $(id).disabled = bulkBusy;
 
   renderCrumbs();
   if (focusId) fillPanel();
+  reapplyDrop();
 }
 
 function renderCrumbs() {
@@ -820,7 +870,7 @@ async function toggleFolderSelection(id) {
 
 // click on a row: show it in the panel, and a folder also opens/closes (the arrow does the same)
 $("rows").onclick = e => {
-  const cb = e.target.closest("input.cb");
+  const cb = e.target.closest(".cbhit");
   if (cb) {
     e.preventDefault();
     const id = cb.dataset.cb, n = nodes.get(id);
@@ -836,11 +886,11 @@ $("rows").onclick = e => {
   focusNode(n.id);
   if (n.type === "FOLDER") toggleOpen(n.id);
 };
-$("cbAll").onclick = e => { e.preventDefault(); e.stopPropagation(); toggleFolderSelection(rootId); };
+$("cbAllHit").onclick = e => { e.preventDefault(); e.stopPropagation(); toggleFolderSelection(rootId); };
 
 document.querySelector("thead").onclick = e => {
   const th = e.target.closest("th[data-key]");
-  if (!th || th.dataset.key === "tags" || e.target.closest("input.cb")) return;
+  if (!th || th.dataset.key === "tags" || e.target.closest(".cbhit")) return;
   if (sortKey === th.dataset.key) sortDir = -sortDir; else { sortKey = th.dataset.key; sortDir = 1; }
   render();
 };
@@ -1112,7 +1162,7 @@ $("pDownload").onclick = () => { const n = nodes.get(focusId); if (n && n.type =
 const openDialog = id => $(id).classList.remove("hidden");
 const closeDialog = id => $(id).classList.add("hidden");
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => closeDialog(b.dataset.close));
-const anyDialogOpen = () => ["dlgMove", "dlgDelete", "dlgFolder"].find(id => !$(id).classList.contains("hidden"));
+const anyDialogOpen = () => ["dlgMove", "dlgDelete", "dlgFolder", "dlgArchive"].find(id => !$(id).classList.contains("hidden"));
 
 /* =====================================================================
    MOVE
@@ -1177,30 +1227,55 @@ $("mvOk").onclick = async () => {
   const items = moveJob.items.filter(n => nodes.has(n.id) && n.parentId !== dest);
   if (!items.length) { $("mvError").textContent = "The selected items are already in this folder."; return; }
   moveJob.busy = true; $("mvOk").disabled = true; $("mvError").textContent = "";
-  const parents = new Set(items.map(n => n.parentId));
-  let ok = 0; const failed = [];
-  for (let i = 0; i < items.length; i++) {
-    const n = items[i];
-    setStatus(`Moving ${i + 1} of ${items.length}…`);
-    try {
-      await tc(itemPath(n), { method: "PATCH", body: { parentId: dest } });
-      const back = (await tc(itemPath(n))).json || {};          // make sure Connect really moved it
-      if (back.parentId != null && String(back.parentId) !== String(dest)) throw new Error(`Trimble Connect did not move “${n.name}”.`);
-      ok++;
-    } catch (e) { failed.push(errText(e)); }
-  }
-  setStatus("");
-  try {
-    for (const p of parents) await refreshFolder(p);
-    if (nodes.get(dest)?.loaded) await refreshFolder(dest);
-    open.add(dest);
-  } catch (e) { failed.push(errText(e)); }
+  const res = await moveItems(items, dest);
   moveJob.busy = false; $("mvOk").disabled = false;
+  if (!res) { $("mvError").textContent = "Another operation is still running. Try again in a moment."; return; }
   closeDialog("dlgMove"); moveJob = null;
+};
+
+async function moveOne(n, dest) {
+  await tc(itemPath(n), { method: "PATCH", body: { parentId: dest } });
+  const back = (await tc(itemPath(n))).json || {};          // make sure Connect really moved it
+  if (back.parentId != null && String(back.parentId) !== String(dest)) throw new Error(`Trimble Connect did not move “${n.name}”.`);
+}
+// does folder `inside` sit in (or equal) folder `folderId`?
+function isInside(inside, folderId) {
+  for (let x = nodes.get(inside); x; x = nodes.get(x.parentId)) if (x.id === folderId) return true;
+  return false;
+}
+// Moves items into the folder `dest`; used by the Move dialog and by drag & drop. Returns null when busy.
+async function moveItems(items, dest) {
+  if (ioBusy) return null;
+  ioBusy = true;
+  const failed = []; let ok = 0;
+  try {
+    items = items.filter(n => nodes.has(n.id) && n.parentId !== dest);
+    const parents = new Set(items.map(n => n.parentId));
+    try { await loadChildren(dest); } catch (e) { failed.push(errText(e)); items = []; }
+    const taken = new Set((nodes.get(dest)?.kids || []).map(k => nodes.get(k)?.name.toLowerCase()));
+    for (let i = 0; i < items.length; i++) {
+      const n = items[i];
+      setStatus(`Moving ${i + 1} of ${items.length}…`);
+      try {
+        if (n.type === "FOLDER" && isInside(dest, n.id)) throw new Error(`“${n.name}” cannot be moved into itself.`);
+        if (taken.has(n.name.toLowerCase())) throw new Error(`An item named “${n.name}” already exists in the destination folder.`);
+        await moveOne(n, dest);
+        taken.add(n.name.toLowerCase());
+        ok++;
+      } catch (e) { failed.push(errText(e)); }
+    }
+    setStatus("");
+    try {
+      for (const p of parents) await refreshFolder(p);
+      if (nodes.get(dest)?.loaded) await refreshFolder(dest);
+      open.add(dest);
+    } catch (e) { failed.push(errText(e)); }
+  } finally { ioBusy = false; setStatus(""); }
   render();
   if (failed.length) toast(`${ok} moved, ${failed.length} failed.\n${failed[0]}`, true);
-  else toast(`${ok} item${ok === 1 ? "" : "s"} moved.`);
-};
+  else toast(`${ok} item${ok === 1 ? "" : "s"} moved to ${whereText(dest)}.`);
+  return { ok, failed };
+}
 
 $("pMove").onclick = () => { const n = nodes.get(focusId); if (n) openMove([n]); };
 $("bMove").onclick = () => openMove([...sel].map(id => nodes.get(id)).filter(Boolean));
@@ -1246,6 +1321,118 @@ $("pDelete").onclick = () => { const n = nodes.get(focusId); if (n) openDelete([
 $("bDelete").onclick = () => openDelete([...sel].map(id => nodes.get(id)).filter(Boolean));
 
 /* =====================================================================
+   ARCHIVE
+   Moves the chosen files / folders into an archive folder at the top of the project, into the same folder
+   path they have now. Missing folders are created; a folder that is already there is reused.
+   ===================================================================== */
+const ARCH_KEY = "be.archiveName", COMPACT_KEY = "be.compact";
+let archJob = null;
+function archiveName() { try { return localStorage.getItem(ARCH_KEY) || "Archive"; } catch { return "Archive"; } }
+
+// the biggest things that are completely ticked (a whole folder counts as one), plus single ticked files
+function archiveUnitsFromSelection() {
+  const units = [];
+  const walk = fid => {
+    for (const k of nodes.get(fid).kids || []) {
+      const c = nodes.get(k);
+      if (c.type === "FOLDER") {
+        const st = stats(k);
+        if (st.total > 0 && st.sel === st.total) units.push(c);
+        else if (st.sel > 0) walk(k);
+      } else if (sel.has(k)) units.push(c);
+    }
+  };
+  walk(rootId);
+  return units;
+}
+function openArchive(units) {
+  if (!units.length) return;
+  archJob = { items: units, busy: false };
+  const folders = units.filter(n => n.type === "FOLDER").length;
+  $("arTitle").textContent = units.length === 1 ? `Archive ${units[0].type === "FOLDER" ? "folder" : "file"}` : `Archive ${units.length} items`;
+  $("arText").textContent = `${units.length === 1 ? `“${units[0].name}” will be` : `${units.length} items will be`} moved to the archive folder, into the same folder path as now. `
+    + `Missing folders are created${folders ? "; a folder is moved with everything inside it" : ""}.`;
+  const shown = units.slice(0, 50).map(n => `<div>${esc(pathNames(n.id).join(" / "))}</div>`).join("");
+  $("arList").innerHTML = shown + (units.length > 50 ? `<div>…and ${units.length - 50} more</div>` : "");
+  $("arList").classList.toggle("hidden", units.length === 1);
+  $("arName").value = archiveName();
+  $("arError").textContent = "";
+  openDialog("dlgArchive");
+}
+async function archiveItems(units, archName) {
+  if (ioBusy) return null;
+  ioBusy = true;
+  const st = { moved: 0, folders: 0, skipped: [], failed: [], touched: new Set() };
+  try {
+    const low = archName.toLowerCase();
+    const topOf = n => { let x = n; while (x.parentId !== rootId && nodes.has(x.parentId)) x = nodes.get(x.parentId); return x; };
+    const todo = units.filter(n => nodes.has(n.id));
+    const archRoot = await ensureFolder(rootId, archName, st);
+    const cache = new Map();
+    const destFor = async segs => {                      // the folder in the archive that mirrors this path
+      let id = archRoot, key = "";
+      for (const s of segs) {
+        key += "/" + s.toLowerCase();
+        if (!cache.has(key)) cache.set(key, await ensureFolder(id, s, st));
+        id = cache.get(key);
+      }
+      return id;
+    };
+    const place = async (n, destId) => {
+      await loadChildren(destId);
+      const same = nodes.get(destId).kids.map(k => nodes.get(k)).find(c => c && c.name.toLowerCase() === n.name.toLowerCase());
+      if (!same) {
+        st.touched.add(n.parentId); st.touched.add(destId);
+        await moveOne(n, destId); st.moved++;
+      } else if (same.type === "FOLDER" && n.type === "FOLDER") {   // already archived once: merge into it
+        await loadChildren(n.id);
+        st.touched.add(n.id);
+        for (const k of [...nodes.get(n.id).kids]) { const c = nodes.get(k); if (c) await place(c, same.id); }
+      } else st.skipped.push(`“${n.name}” already exists in ${whereText(destId)}.`);
+    };
+    for (let i = 0; i < todo.length; i++) {
+      const n = todo[i];
+      setStatus(`Archiving ${i + 1} of ${todo.length}…`);
+      const top = topOf(n);
+      if (top.type === "FOLDER" && top.name.toLowerCase() === low) { st.skipped.push(`“${n.name}” is already in the archive.`); continue; }
+      try { await place(n, await destFor(pathNames(n.parentId))); }
+      catch (e) { st.failed.push(errText(e)); }
+    }
+    for (const id of st.touched) { try { if (nodes.get(id)?.loaded) await refreshFolder(id); } catch { /* refresh by hand if needed */ } }
+  } catch (e) { st.failed.push(errText(e)); }
+  finally { ioBusy = false; setStatus(""); }
+  render();
+  const msg = `${st.moved} item${st.moved === 1 ? "" : "s"} archived${st.folders ? `, ${st.folders} folder${st.folders === 1 ? "" : "s"} created` : ""}.`;
+  const problems = [...st.failed, ...st.skipped];
+  if (problems.length) toast(`${msg}\n${problems.length} not archived: ${problems[0]}`, true);
+  else toast(msg);
+  return st;
+}
+$("arOk").onclick = async () => {
+  if (!archJob || archJob.busy) return;
+  const name = $("arName").value.trim();
+  const bad = nameProblem(name, "", null);
+  if (bad) { $("arError").textContent = bad; return; }
+  archJob.busy = true; $("arOk").disabled = true; $("arError").textContent = "";
+  try { localStorage.setItem(ARCH_KEY, name); } catch { /* optional */ }
+  const res = await archiveItems(archJob.items, name);
+  archJob.busy = false; $("arOk").disabled = false;
+  if (!res) { $("arError").textContent = "Another operation is still running. Try again in a moment."; return; }
+  closeDialog("dlgArchive"); archJob = null;
+};
+$("pArchive").onclick = () => { const n = nodes.get(focusId); if (n && n.id !== rootId) openArchive([n]); };
+$("bArchive").onclick = () => openArchive(archiveUnitsFromSelection());
+
+/* ---- compact rows ---- */
+function setCompact(on) {
+  document.body.classList.toggle("compact", on);
+  $("btnCompact").classList.toggle("on", on);
+  try { localStorage.setItem(COMPACT_KEY, on ? "1" : "0"); } catch { /* optional */ }
+}
+$("btnCompact").onclick = () => setCompact(!document.body.classList.contains("compact"));
+try { if (localStorage.getItem(COMPACT_KEY) === "1") setCompact(true); } catch { /* optional */ }
+
+/* =====================================================================
    ADD: upload files, new folder (goes into the folder open in the panel, else the root)
    ===================================================================== */
 function targetFolderId() {
@@ -1262,19 +1449,66 @@ $("miUpload").onclick = () => { $("fileInput").value = ""; $("fileInput").click(
 $("fileInput").onchange = async e => {
   const files = [...(e.target.files || [])];
   if (!files.length) return;
-  const target = targetFolderId();
-  let ok = 0, dup = 0; const failed = [];
-  for (let i = 0; i < files.length; i++) {
-    toast(`Uploading ${i + 1} of ${files.length}: ${files[i].name}`, false, 0);
-    try { (await uploadFile(target, files[i])) === "duplicate" ? dup++ : ok++; }
-    catch (err) { failed.push(errText(err)); }
-  }
-  try { await refreshFolder(target); open.add(target); } catch { /* the tree can be refreshed manually */ }
-  render();
-  const parts = [`${ok} uploaded`]; if (dup) parts.push(`${dup} already there`);
-  if (failed.length) toast(`${parts.join(", ")}, ${failed.length} failed.\n${failed[0]}`, true);
-  else toast(`${parts.join(", ")}.`);
+  await runUpload(files.map(f => ({ isFile: true, isDirectory: false, name: f.name, file: ok => ok(f) })), targetFolderId());
 };
+
+// Uploads files / dropped folders (FileSystemEntry-like objects) into `target`. Returns null when busy.
+const fileOf = en => new Promise((res, rej) => en.file(res, rej));
+async function readDir(en) {
+  const rd = en.createReader(), out = [];
+  for (;;) {
+    const batch = await new Promise((res, rej) => rd.readEntries(res, rej));
+    if (!batch.length) break;
+    out.push(...batch);
+  }
+  return out;
+}
+async function ensureFolder(parentId, name, st) {
+  await loadChildren(parentId);
+  const ex = nodes.get(parentId).kids.map(k => nodes.get(k)).find(c => c && c.type === "FOLDER" && c.name.toLowerCase() === name.toLowerCase());
+  if (ex) return ex.id;
+  const f = (await tc("/folders", { method: "POST", body: { name, parentId } })).json || {};
+  if (!f.id) throw new Error(`The folder “${name}” could not be created.`);
+  const id = String(f.id);
+  nodes.set(id, makeNode({ ...f, name, type: "FOLDER" }, parentId));
+  nodes.get(parentId).kids.push(id);
+  st.touched.add(parentId); st.folders++;
+  return id;
+}
+async function uploadEntries(entries, targetId, st) {
+  for (const en of entries) {
+    if (en.isFile) {
+      toast(`Uploading “${en.name}” → ${whereText(targetId)}\n${st.ok} uploaded so far`, false, 0);
+      try { (await uploadFile(targetId, await fileOf(en))) === "duplicate" ? st.dup++ : st.ok++; st.touched.add(targetId); }
+      catch (err) { st.failed.push(errText(err)); }
+    } else if (en.isDirectory) {
+      try {
+        const fid = await ensureFolder(targetId, en.name, st);
+        await uploadEntries(await readDir(en), fid, st);
+      } catch (err) { st.failed.push(errText(err)); }
+    }
+  }
+}
+async function runUpload(entries, target) {
+  if (ioBusy) { toast("Another operation is still running. Try again in a moment.", true); return null; }
+  ioBusy = true;
+  const st = { ok: 0, dup: 0, folders: 0, failed: [], touched: new Set([target]) };
+  try {
+    await uploadEntries(entries, target, st);
+    for (const id of st.touched) {
+      try { nodes.get(id)?.loaded ? await refreshFolder(id) : id === target && await loadChildren(id); }
+      catch { /* the tree can be refreshed manually */ }
+    }
+    open.add(target);
+  } finally { ioBusy = false; }
+  render();
+  const parts = [`${st.ok} uploaded to ${whereText(target)}`];
+  if (st.folders) parts.push(`${st.folders} folder${st.folders === 1 ? "" : "s"} created`);
+  if (st.dup) parts.push(`${st.dup} already there`);
+  if (st.failed.length) toast(`${parts.join(", ")}, ${st.failed.length} failed.\n${st.failed[0]}`, true);
+  else toast(`${parts.join(", ")}.`);
+  return st;
+}
 
 async function uploadFile(parentId, file) {
   const init = (await tc(`/files/fs/upload?parentId=${enc(parentId)}&parentType=FOLDER`,
@@ -1322,6 +1556,107 @@ async function createFolder() {
 }
 $("nfOk").onclick = createFolder;
 $("nfName").onkeydown = e => { if (e.key === "Enter") createFolder(); };
+
+/* =====================================================================
+   DRAG & DROP
+   - drag rows (files / folders, or all selected files) onto a folder  → move
+   - drag files / folders from the computer onto a folder              → upload
+   Dropping on a file means "into the folder that file is in"; dropping on empty space means the project root.
+   The folder that will receive the drop is highlighted while you drag.
+   ===================================================================== */
+let drag = null, dropId = null, expandTimer = null;
+const wrapEl = $("tableWrap");
+const hasFiles = e => Array.from(e.dataTransfer?.types || []).includes("Files");
+
+function dropTargetId(e) {
+  const tr = e.target?.closest?.("#rows tr[data-id]");
+  const n = tr && nodes.get(tr.dataset.id);
+  if (!n) return rootId;
+  return n.type === "FOLDER" ? n.id : n.parentId;
+}
+function canDropOn(destId, items) {
+  if (!nodes.has(destId)) return false;
+  for (const it of items) if (it.type === "FOLDER" && isInside(destId, it.id)) return false;
+  return items.some(it => it.parentId !== destId);
+}
+function applyDrop() {
+  wrapEl.classList.toggle("droproot", dropId === rootId);
+  for (const tr of $("rows").children) tr.classList.toggle("dropt", dropId != null && dropId !== rootId && tr.dataset.id === dropId);
+}
+function reapplyDrop() { if (dropId != null) applyDrop(); }
+function setDrop(id) {
+  dropId = id; applyDrop();
+  clearTimeout(expandTimer);
+  if (id == null) { setStatus(""); return; }
+  setStatus(`${drag ? "Move to" : "Upload to"} ${whereText(id)}`);
+  const n = nodes.get(id);
+  if (n && id !== rootId && !open.has(id)) {          // hover over a closed folder → open it after a moment
+    expandTimer = setTimeout(async () => {
+      if (dropId !== id) return;
+      open.add(id); render();
+      try { await loadChildren(id); } catch { /* shown by the next refresh */ }
+      render();
+    }, 800);
+  }
+}
+function endDrag() { drag = null; setDrop(null); }
+
+$("rows").addEventListener("dragstart", e => {
+  const tr = e.target?.closest?.("tr[data-id]");
+  const n = tr && nodes.get(tr.dataset.id);
+  if (!n || ioBusy || bulkBusy) { e.preventDefault(); return; }
+  const items = n.type === "FILE" && sel.has(n.id) && sel.size > 1 ? [...sel].map(id => nodes.get(id)).filter(Boolean) : [n];
+  drag = { items };
+  e.dataTransfer.effectAllowed = "move";
+  e.dataTransfer.setData("text/plain", items.map(i => i.name).join("\n"));
+  if (items.length > 1) {
+    const g = document.createElement("div");
+    g.className = "drag-ghost"; g.textContent = `${items.length} items`;
+    document.body.appendChild(g);
+    e.dataTransfer.setDragImage(g, 12, 12);
+    setTimeout(() => g.remove(), 0);
+  }
+});
+wrapEl.addEventListener("dragover", e => {
+  const files = hasFiles(e);
+  if (files) drag = null;                                  // a stale internal drag can't be mixed with a file drag
+  if (!drag && !files) return;
+  const dest = dropTargetId(e);
+  if (drag && !canDropOn(dest, drag.items)) { e.dataTransfer.dropEffect = "none"; if (dropId != null) setDrop(null); return; }
+  e.preventDefault();
+  e.dataTransfer.dropEffect = drag ? "move" : "copy";
+  if (dest !== dropId) setDrop(dest);
+  const r = wrapEl.getBoundingClientRect();                // scroll when near the top / bottom edge
+  if (e.clientY < r.top + 40) wrapEl.scrollTop -= 16;
+  else if (e.clientY > r.bottom - 40) wrapEl.scrollTop += 16;
+});
+wrapEl.addEventListener("dragleave", e => {
+  if (!wrapEl.contains(e.relatedTarget)) setDrop(null);
+});
+wrapEl.addEventListener("drop", e => {
+  const files = hasFiles(e);
+  if (!files && !drag) return;
+  e.preventDefault();
+  const dest = dropTargetId(e);
+  if (files) {
+    // the entries must be taken while the event is still being handled
+    const dt = e.dataTransfer;
+    const entries = [...(dt.items || [])].filter(i => i.kind === "file").map(i => i.webkitGetAsEntry?.()).filter(Boolean);
+    const list = entries.length ? entries : [...dt.files].map(f => ({ isFile: true, isDirectory: false, name: f.name, file: ok => ok(f) }));
+    endDrag();
+    if (list.length) runUpload(list, dest);
+  } else {
+    const items = drag.items;
+    endDrag();
+    if (canDropOn(dest, items)) moveItems(items, dest).then(r => { if (!r) toast("Another operation is still running. Try again in a moment.", true); });
+  }
+});
+document.addEventListener("dragend", endDrag);
+// a file dropped anywhere else must not make the browser open it
+document.addEventListener("dragover", e => {
+  if (hasFiles(e) && !e.target?.closest?.("#tableWrap")) { e.preventDefault(); e.dataTransfer.dropEffect = "none"; }
+});
+document.addEventListener("drop", e => { if (hasFiles(e)) e.preventDefault(); });
 
 /* =====================================================================
    KEYBOARD
