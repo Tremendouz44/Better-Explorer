@@ -271,6 +271,7 @@
     <button id="bMove" class="btn-secondary" type="button">Move to…</button>
     <button id="bArchive" class="btn-secondary" type="button" title="Move to the Archive folder, keeping the same folder path">Archive</button>
     <button id="bDelete" class="btn-danger outline" type="button">Delete</button>
+    <button id="bInvert" class="btn-secondary" type="button">Invert selection</button>
     <button id="bClear" class="btn-secondary" type="button">Clear selection</button>
   </div>
   <div class="content">
@@ -312,7 +313,7 @@
       <div class="p-actions" id="pActions">
         <button id="pView" class="btn-view" type="button">
           <svg class="i" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5ZM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>
-          View in 3D
+          View
         </button>
         <button id="pShare" class="btn-light" type="button">
           <svg class="i" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92Z"/></svg>
@@ -453,9 +454,6 @@
       </button>
     </div>
     <p id="arText"></p>
-    <div id="arList" class="m-list"></div>
-    <label for="arName">Archive folder (at the top of the project)</label>
-    <input id="arName" type="text" autocomplete="off" placeholder="Archive">
     <div id="arError" class="form-error"></div>
     <div class="m-foot">
       <button class="btn-secondary" type="button" data-close="dlgArchive">Cancel</button>
@@ -495,7 +493,7 @@ import * as TCW from "https://esm.run/trimble-connect-workspace-api";
 /* =====================================================================
    SETTINGS
    ===================================================================== */
-const VERSION = "v2026-11-05.6";
+const VERSION = "v2026-11-05.12";
 const HOSTS = {                                  // project.location -> Core API host
   northamerica:  "https://app.connect.trimble.com",
   europe:        "https://app21.connect.trimble.com",
@@ -909,7 +907,7 @@ function render() {
   const n = sel.size;
   $("bulk").classList.toggle("off", n === 0);
   $("bulkCount").textContent = `${n} file${n === 1 ? "" : "s"} selected`;
-  for (const id of ["bDownload", "bShare", "bMove", "bArchive", "bDelete"]) $(id).disabled = bulkBusy;
+  for (const id of ["bDownload", "bShare", "bMove", "bArchive", "bDelete", "bInvert"]) $(id).disabled = bulkBusy;
 
   renderCrumbs();
   if (focusId) fillPanel();
@@ -978,6 +976,22 @@ document.querySelector("thead").onclick = e => {
 };
 
 $("bClear").onclick = () => { sel.clear(); render(); };
+
+// selected files become unselected and the other way round (only among the files the search shows, if a search is active)
+$("bInvert").onclick = async () => {
+  if (bulkBusy) return;
+  bulkBusy = true; render();
+  try {
+    if (!fullScan) { setStatus("Loading folders…"); await loadSubtree(rootId); }
+    const q = query.trim().toLowerCase();
+    const visible = q ? computeMatches(q).visible : null;
+    const next = new Set();
+    for (const n of nodes.values()) if (n.type === "FILE" && (!visible || visible.has(n.id)) && !sel.has(n.id)) next.add(n.id);
+    if (visible) for (const id of sel) if (!visible.has(id)) next.add(id);   // files hidden by the search keep their state
+    sel.clear(); next.forEach(id => sel.add(id));
+  } catch (e) { toast(errText(e), true); }
+  finally { bulkBusy = false; setStatus(""); render(); }
+};
 
 $("btnExpand").onclick = async () => {
   setStatus("Loading folders…");
@@ -1082,8 +1096,10 @@ function fillPanel() {
   const isF = n.type === "FOLDER";
   $("pName").textContent = n.name;
   $("pPreview").innerHTML = isF ? FOLDER_ICON.replace('class="ico fold"', "") : FILE_ICON.replace('class="ico file"', "");
-  $("pView").classList.toggle("hidden", isF);
-  $("pDownload").classList.toggle("hidden", isF);
+  $("pView").classList.toggle("hidden", !(canView3D(n) || canView2D(n)));
+  $("pView").title = isF ? "Show all 3D models in this folder in the 3D Viewer" : canView2D(n) ? "Opens in the 2D viewer" : "Opens in the 3D viewer";
+  $("pDownload").title = isF ? "Download everything in this folder as one ZIP file" : "";
+  $("pShare").title = isF ? "Share all files in this folder" : "";
   const d = n.details || {};
   $("dVersion").textContent = isF ? "—" : String(d.version ?? d.versionNumber ?? "—");
   $("dSize").textContent = fmtSize(n.size) || "—";
@@ -1093,14 +1109,80 @@ function fillPanel() {
   $("dPath").textContent = "/" + pathNames(n.id).slice(0, -1).join("/");
 }
 
+// Which viewer opens which file type: Trimble Connect help, "Supported file formats" (browser)
+const SET = s => new Set(s.split(" "));
+const EXT_2D = SET("bmp doc docx gif jpeg jpg pdf png ppt pptx rtf tif tiff txt xls xlsx");
+const EXT_MODEL = SET("ifc ifczip igs iges nwd nwc rvt skp stp step svd svl tczip tekla tflx trb ttm vcl e57 las laz kml kmz jxl");   // real 3D models, point clouds, geospatial
+const EXT_3D = new Set([...EXT_MODEL, ...SET("dgn dwg dxf")]);                                                                      // drawings the 3D viewer can show too
+// a folder goes to the viewer as all the models inside it (drawings excluded: a folder of DWG sheets should not be loaded into 3D)
+const MODEL_EXT = EXT_MODEL;
+const extOf = name => (String(name).match(/\.([^.]+)$/)?.[1] || "").toLowerCase();
+const canView3D = n => n.type === "FOLDER" || EXT_3D.has(extOf(n.name));
+const canView2D = n => n.type === "FILE" && EXT_2D.has(extOf(n.name));
+
+// every file below a folder with its path relative to that folder
+function filesWithPaths(fid, prefix = "") {
+  const out = [];
+  for (const k of nodes.get(fid).kids || []) {
+    const c = nodes.get(k);
+    if (!c) continue;
+    if (c.type === "FOLDER") out.push(...filesWithPaths(k, prefix + c.name + "/"));
+    else out.push({ n: c, path: prefix + c.name });
+  }
+  return out;
+}
+
+async function showIn3D(files) {
+  const ids = files.map(n => n.id);
+  const ok = await api.extension.goTo("3dviewer", { projectId: project.id, modelId: ids[0] });
+  if (ok === false) throw new Error("The 3D Viewer could not be opened.");
+  if (ids.length < 2) return;
+  let last = null;                                   // the remaining models are added to the viewer that just opened
+  for (let i = 0; i < 4; i++) {
+    await new Promise(r => setTimeout(r, i ? 1500 : 800));
+    try { await api.viewer.toggleModel(ids.slice(1), true, true); return; } catch (e) { last = e; }
+  }
+  throw new Error(`The first model was opened, but the other ${ids.length - 1} could not be added automatically (${errText(last)}).`);
+}
+// the version the native viewer is opened with (latest one)
+async function latestVersionId(n) {
+  try {
+    const d = (await tc(`/files/${enc(n.id)}`)).json || {};
+    const v = d.versionId || d.lastVersionId || d.currentVersionId || (d.version && typeof d.version === "object" && d.version.id);
+    if (v) return String(v);
+    const list = listOf((await tc(`/files/${enc(n.id)}/versions`)).json);
+    if (list.length) {
+      const top = list.reduce((a, b) => (Number(b.version ?? 0) > Number(a.version ?? 0) ? b : a));
+      if (top.id) return String(top.id);
+    }
+  } catch { /* fall back below */ }
+  return n.id;                                       // a file that has only its first version: version id = file id
+}
+// PDFs, images and drawings open in the Trimble Connect 2D viewer, the same page the native Explorer opens
+async function showIn2D(n) {
+  const w = window.open("about:blank", "_blank");     // opened right away so the browser does not block it
+  try {
+    const v = await latestVersionId(n);
+    const url = `https://web.connect.trimble.com/projects/${enc(project.id)}/viewer/2D?id=${enc(n.id)}&version=${enc(v)}&type=revisions&etag=${enc(v)}`;
+    if (!w) throw new Error("The browser blocked the new tab. Allow pop-ups for this page and try again.");
+    w.location.href = url;
+  } catch (e) { try { w?.close(); } catch { /* already closed */ } throw e; }
+}
 $("pView").onclick = async () => {
   const n = nodes.get(focusId);
-  if (!n || n.type !== "FILE") return;
+  if (!n) return;
   try {
-    const ok = await api.extension.goTo("3dviewer", { projectId: project.id, modelId: n.id });
-    if (ok === false) toast("The 3D Viewer could not be opened.", true);
+    if (n.type === "FILE") { canView2D(n) ? await showIn2D(n) : await showIn3D([n]); return; }   // by format, like the native Explorer
+    setStatus(`Reading “${n.name}”…`);
+    await loadSubtree(n.id);
+    setStatus("");
+    const models = filesWithPaths(n.id).map(f => f.n).filter(f => MODEL_EXT.has(extOf(f.name)));
+    if (!models.length) { toast(`There are no 3D models in “${n.name}”.`, true); return; }
+    toast(`Opening ${models.length} model${models.length === 1 ? "" : "s"} in the 3D Viewer…`);
+    await showIn3D(models);
   } catch (e) {
-    toast("The 3D Viewer could not be opened: " + errText(e), true);
+    setStatus("");
+    toast(errText(e), true);
   }
 };
 
@@ -1218,6 +1300,91 @@ async function downloadFile(id) {
   document.body.appendChild(a); a.click(); a.remove();
 }
 
+/* =====================================================================
+   DOWNLOAD A FOLDER AS ONE ZIP  (built in the browser; files are stored, not compressed)
+   ===================================================================== */
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+  return t;
+})();
+async function crcOfBlob(blob) {
+  let crc = 0xFFFFFFFF;
+  for (let off = 0; off < blob.size; off += 8 * 1048576) {
+    const buf = new Uint8Array(await blob.slice(off, off + 8 * 1048576).arrayBuffer());
+    for (let i = 0; i < buf.length; i++) crc = CRC_TABLE[(crc ^ buf[i]) & 0xFF] ^ (crc >>> 8);
+  }
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+function buildZip(entries) {                         // entries: [{ path, blob, crc, mtime }]
+  const enc8 = new TextEncoder(), parts = [], central = [];
+  let offset = 0;
+  for (const e of entries) {
+    const name = enc8.encode(e.path), d = new Date(isNaN(+e.mtime) ? Date.now() : e.mtime);
+    const time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+    const date = (Math.max(d.getFullYear() - 1980, 0) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+    const lh = new DataView(new ArrayBuffer(30 + name.length));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true);
+    lh.setUint16(10, time, true); lh.setUint16(12, date, true); lh.setUint32(14, e.crc, true);
+    lh.setUint32(18, e.blob.size, true); lh.setUint32(22, e.blob.size, true); lh.setUint16(26, name.length, true); lh.setUint16(28, 0, true);
+    new Uint8Array(lh.buffer).set(name, 30);
+    parts.push(lh.buffer, e.blob);
+    const ch = new DataView(new ArrayBuffer(46 + name.length));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true);
+    ch.setUint16(12, time, true); ch.setUint16(14, date, true); ch.setUint32(16, e.crc, true);
+    ch.setUint32(20, e.blob.size, true); ch.setUint32(24, e.blob.size, true); ch.setUint16(28, name.length, true);
+    ch.setUint32(42, offset, true);
+    new Uint8Array(ch.buffer).set(name, 46);
+    central.push(ch.buffer);
+    offset += lh.byteLength + e.blob.size;
+  }
+  const cdSize = central.reduce((s, b) => s + b.byteLength, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, entries.length, true); end.setUint16(10, entries.length, true);
+  end.setUint32(12, cdSize, true); end.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, end.buffer], { type: "application/zip" });
+}
+const ZIP_MAX = 3.5 * 1024 ** 3;
+async function downloadFolderZip(fid) {
+  const f = nodes.get(fid);
+  if (!f || ioBusy) { if (ioBusy) toast("Another operation is still running. Try again in a moment.", true); return; }
+  ioBusy = true;
+  try {
+    setStatus(`Reading “${f.name}”…`);
+    await loadSubtree(fid);
+    const files = filesWithPaths(fid, f.name + "/");
+    if (!files.length) { toast(`There are no files in “${f.name}” to download.`, true); return; }
+    const total = files.reduce((s, x) => s + (x.n.size || 0), 0);
+    if (total > ZIP_MAX || files.length > 60000) throw new Error(`“${f.name}” is too big for one ZIP in the browser (${fmtSize(total)}, ${files.length} files). Download it in smaller parts.`);
+    const entries = []; const failed = []; let done = 0;
+    await pool(files, 3, async ({ n, path }) => {
+      try {
+        const d = await tc(`/files/fs/${enc(n.id)}/downloadurl`);
+        if (!d.json?.url) throw new Error(`No download link for “${n.name}”.`);
+        const res = await fetch(d.json.url);
+        if (!res.ok) throw new ApiError(res.status, `Download of “${n.name}”`, await res.text());
+        const blob = await res.blob();
+        entries.push({ path, blob, crc: await crcOfBlob(blob), mtime: n.modifiedOn });
+      } catch (e) { failed.push(errText(e)); }
+      done++;
+      toast(`Preparing ZIP: ${done} of ${files.length} files (${fmtSize(total)})`, false, 0);
+    });
+    if (!entries.length) throw new Error(failed[0] || "Nothing could be downloaded.");
+    entries.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }));
+    const url = URL.createObjectURL(buildZip(entries));
+    const a = document.createElement("a");
+    a.href = url; a.download = f.name + ".zip"; a.rel = "noopener";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 120000);
+    if (failed.length) toast(`${f.name}.zip: ${entries.length} files, ${failed.length} could not be downloaded.\n${failed[0]}`, true);
+    else toast(`${f.name}.zip: ${entries.length} file${entries.length === 1 ? "" : "s"}.`);
+  } catch (e) {
+    toast(errText(e), true);
+  } finally {
+    ioBusy = false; setStatus("");
+  }
+}
+
 async function downloadMany(ids) {
   if (bulkBusy || !ids.length) return;
   bulkBusy = true; render();
@@ -1236,7 +1403,7 @@ async function downloadMany(ids) {
 }
 
 $("bDownload").onclick = () => downloadMany([...sel]);
-$("pDownload").onclick = () => { const n = nodes.get(focusId); if (n && n.type === "FILE") downloadMany([n.id]); };
+$("pDownload").onclick = () => { const n = nodes.get(focusId); if (!n) return; n.type === "FILE" ? downloadMany([n.id]) : downloadFolderZip(n.id); };
 
 /* =====================================================================
    DIALOGS
@@ -1626,9 +1793,8 @@ $("bShare").onclick = () => openShare([...sel].map(id => nodes.get(id)).filter(B
    Moves the chosen files / folders into an archive folder at the top of the project, into the same folder
    path they have now. Missing folders are created; a folder that is already there is reused.
    ===================================================================== */
-const ARCH_KEY = "be.archiveName", COMPACT_KEY = "be.compact";
+const ARCH_NAME = "Archive", COMPACT_KEY = "be.compact";
 let archJob = null;
-function archiveName() { try { return localStorage.getItem(ARCH_KEY) || "Archive"; } catch { return "Archive"; } }
 
 // the biggest things that are completely ticked (a whole folder counts as one), plus single ticked files
 function archiveUnitsFromSelection() {
@@ -1649,14 +1815,11 @@ function archiveUnitsFromSelection() {
 function openArchive(units) {
   if (!units.length) return;
   archJob = { items: units, busy: false };
-  const folders = units.filter(n => n.type === "FOLDER").length;
-  $("arTitle").textContent = units.length === 1 ? `Archive ${units[0].type === "FOLDER" ? "folder" : "file"}` : `Archive ${units.length} items`;
-  $("arText").textContent = `${units.length === 1 ? `“${units[0].name}” will be` : `${units.length} items will be`} moved to the archive folder, into the same folder path as now. `
-    + `Missing folders are created${folders ? "; a folder is moved with everything inside it" : ""}.`;
-  const shown = units.slice(0, 50).map(n => `<div>${esc(pathNames(n.id).join(" / "))}</div>`).join("");
-  $("arList").innerHTML = shown + (units.length > 50 ? `<div>…and ${units.length - 50} more</div>` : "");
-  $("arList").classList.toggle("hidden", units.length === 1);
-  $("arName").value = archiveName();
+  const files = units.filter(n => n.type === "FILE").length, folders = units.length - files;
+  const what = units.length === 1 ? `“${units[0].name}”`
+    : [files ? `${files} file${files === 1 ? "" : "s"}` : "", folders ? `${folders} folder${folders === 1 ? "" : "s"}` : ""].filter(Boolean).join(" and ");
+  $("arTitle").textContent = "Archive";
+  $("arText").textContent = `${what} will be moved to Archive, into the same folder path as now.`;
   $("arError").textContent = "";
   openDialog("dlgArchive");
 }
@@ -1711,12 +1874,8 @@ async function archiveItems(units, archName) {
 }
 $("arOk").onclick = async () => {
   if (!archJob || archJob.busy) return;
-  const name = $("arName").value.trim();
-  const bad = nameProblem(name, "", null);
-  if (bad) { $("arError").textContent = bad; return; }
   archJob.busy = true; $("arOk").disabled = true; $("arError").textContent = "";
-  try { localStorage.setItem(ARCH_KEY, name); } catch { /* optional */ }
-  const res = await archiveItems(archJob.items, name);
+  const res = await archiveItems(archJob.items, ARCH_NAME);
   archJob.busy = false; $("arOk").disabled = false;
   if (!res) { $("arError").textContent = "Another operation is still running. Try again in a moment."; return; }
   closeDialog("dlgArchive"); archJob = null;
