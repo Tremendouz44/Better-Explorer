@@ -164,6 +164,23 @@
   .modal label { display: block; margin: 14px 0 5px; font-size: 12px; color: var(--text-2); }
   .modal input[type=text] { width: 100%; height: 40px; padding: 0 10px; font: inherit; color: var(--text); background: var(--white); border: 1px solid var(--line-2); border-bottom-color: var(--text-3); }
   .modal input[type=text]:focus { outline: none; border-bottom: 2px solid var(--blue); }
+  .modal select, .modal textarea, .modal input[type=date] { width: 100%; font: inherit; color: var(--text); background: var(--white); border: 1px solid var(--line-2); border-bottom-color: var(--text-3); }
+  .modal select, .modal input[type=date] { height: 40px; padding: 0 8px; }
+  .modal textarea { min-height: 70px; padding: 8px 10px; resize: vertical; }
+  .modal select:focus, .modal textarea:focus, .modal input[type=date]:focus { outline: none; border-bottom: 2px solid var(--blue); }
+  .row2 { display: flex; gap: 16px; } .row2 > div { flex: 1; min-width: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; min-height: 44px; background: var(--white); border: 1px solid var(--line-2); border-bottom-color: var(--text-3); }
+  .chip { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; padding: 4px 6px 4px 12px; border-radius: 14px; background: var(--line); font-size: 13px; color: var(--text); }
+  .chip button { border: 0; background: none; cursor: pointer; color: var(--text-3); font-size: 14px; padding: 0 4px; }
+  .modal .chips input[type=text] { flex: 1; min-width: 150px; height: 30px; border: 0; background: none; padding: 0 4px; }
+  .modal .chips input[type=text]:focus { border: 0; }
+  .suggest { max-height: 168px; overflow: auto; background: var(--white); border: 1px solid var(--line); border-top: 0; }
+  .suggest div { padding: 8px 12px; cursor: pointer; font-size: 13px; color: var(--text); }
+  .suggest div:hover { background: var(--hover); }
+  .suggest small { color: var(--text-3); margin-left: 6px; }
+  .modal label.check { display: flex; align-items: center; gap: 10px; margin: 14px 0 0; font-size: 14px; color: var(--text); cursor: pointer; }
+  .check input { width: 18px; height: 18px; accent-color: var(--blue); }
+  .note { font-size: 13px; color: var(--text-2); }
   .m-list { max-height: 140px; overflow: auto; margin: 10px 0 0; padding: 8px 12px; background: var(--white); border: 1px solid var(--line); color: var(--text-2); font-size: 13px; line-height: 1.6; }
   .tree { height: 260px; overflow: auto; background: var(--white); border: 1px solid var(--line-2); padding: 4px 0; margin-top: 10px; }
   .t-row { display: flex; align-items: center; gap: 4px; height: 34px; padding-right: 8px; cursor: pointer; white-space: nowrap; }
@@ -242,6 +259,7 @@
   <div id="bulk" class="bulk off">
     <span id="bulkCount" class="cnt"></span>
     <button id="bDownload" class="btn-primary" type="button">Download</button>
+    <button id="bShare" class="btn-secondary" type="button">Share</button>
     <button id="bMove" class="btn-secondary" type="button">Move to…</button>
     <button id="bArchive" class="btn-secondary" type="button" title="Move to the Archive folder, keeping the same folder path">Archive</button>
     <button id="bDelete" class="btn-danger outline" type="button">Delete</button>
@@ -287,6 +305,10 @@
         <button id="pView" class="btn-view" type="button">
           <svg class="i" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5ZM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>
           View in 3D
+        </button>
+        <button id="pShare" class="btn-light" type="button">
+          <svg class="i" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92Z"/></svg>
+          Share
         </button>
         <button id="pDownload" class="btn-light" type="button">
           <svg class="i" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7ZM5 18v2h14v-2H5Z"/></svg>
@@ -365,6 +387,53 @@
   </div>
 </div>
 
+<!-- Share dialog -->
+<div id="dlgShare" class="overlay hidden">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="shTitle">
+    <div class="m-head">
+      <h2 id="shTitle">Share data</h2>
+      <button class="icon-btn" type="button" data-close="dlgShare" title="Close">
+        <svg class="i" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+      </button>
+    </div>
+    <div id="shForm">
+      <p id="shWhat"></p>
+      <label for="shMode">Share with</label>
+      <select id="shMode">
+        <option value="PROJECT_USERS">Specific members of the project</option>
+        <option value="REGISTERED_USERS">Signed in users with the link</option>
+        <option value="PUBLIC">Any users with the link</option>
+      </select>
+      <label id="shPeopleLabel" for="shInput">People</label>
+      <div id="shChips" class="chips"><input id="shInput" type="text" autocomplete="off"></div>
+      <div id="shSuggest" class="suggest hidden"></div>
+      <div id="shLinkOpts">
+        <div class="row2">
+          <div><label for="shExpiry">Link expires on</label><input id="shExpiry" type="date"></div>
+          <div><label for="shAccess">Access</label><select id="shAccess"><option value="VIEW">View only</option></select></div>
+        </div>
+        <label class="check"><input id="shLatest" type="checkbox" checked> Show latest version</label>
+      </div>
+      <label for="shNote">Note</label>
+      <textarea id="shNote" placeholder="Add a message"></textarea>
+      <p class="note">Note: Any access restrictions placed on the files are removed when the files are shared.</p>
+      <div id="shError" class="form-error"></div>
+      <div class="m-foot">
+        <button class="btn-secondary" type="button" data-close="dlgShare">Cancel</button>
+        <button id="shOk" class="btn-primary" type="button">Share</button>
+      </div>
+    </div>
+    <div id="shDone" class="hidden">
+      <p id="shDoneText"></p>
+      <textarea id="shLinks" readonly rows="5"></textarea>
+      <div class="m-foot">
+        <button id="shCopy" class="btn-secondary" type="button">Copy links</button>
+        <button id="shClose" class="btn-primary" type="button" data-close="dlgShare">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Archive dialog -->
 <div id="dlgArchive" class="overlay hidden">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="arTitle">
@@ -417,7 +486,7 @@ import * as TCW from "https://esm.run/trimble-connect-workspace-api";
 /* =====================================================================
    SETTINGS
    ===================================================================== */
-const VERSION = "v2026-11-05.3";
+const VERSION = "v2026-11-05.4";
 const HOSTS = {                                  // project.location -> Core API host
   northamerica:  "https://app.connect.trimble.com",
   europe:        "https://app21.connect.trimble.com",
@@ -831,7 +900,7 @@ function render() {
   const n = sel.size;
   $("bulk").classList.toggle("off", n === 0);
   $("bulkCount").textContent = `${n} file${n === 1 ? "" : "s"} selected`;
-  for (const id of ["bDownload", "bMove", "bArchive", "bDelete"]) $(id).disabled = bulkBusy;
+  for (const id of ["bDownload", "bShare", "bMove", "bArchive", "bDelete"]) $(id).disabled = bulkBusy;
 
   renderCrumbs();
   if (focusId) fillPanel();
@@ -1166,7 +1235,7 @@ $("pDownload").onclick = () => { const n = nodes.get(focusId); if (n && n.type =
 const openDialog = id => $(id).classList.remove("hidden");
 const closeDialog = id => $(id).classList.add("hidden");
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => closeDialog(b.dataset.close));
-const anyDialogOpen = () => ["dlgMove", "dlgDelete", "dlgFolder", "dlgArchive"].find(id => !$(id).classList.contains("hidden"));
+const anyDialogOpen = () => ["dlgMove", "dlgDelete", "dlgFolder", "dlgArchive", "dlgShare"].find(id => !$(id).classList.contains("hidden"));
 
 /* =====================================================================
    MOVE
@@ -1323,6 +1392,168 @@ $("dlOk").onclick = async () => {
 };
 $("pDelete").onclick = () => { const n = nodes.get(focusId); if (n) openDelete([n]); };
 $("bDelete").onclick = () => openDelete([...sel].map(id => nodes.get(id)).filter(Boolean));
+
+/* =====================================================================
+   SHARE  (same request the native Explorer sends: POST /shares)
+   modes: PROJECT_USERS (members of the project) | REGISTERED_USERS / PUBLIC (link, valid e-mail addresses)
+   ===================================================================== */
+let shareJob = null, projUsers = null;
+const EMAIL_RE = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
+const isLinkMode = () => $("shMode").value !== "PROJECT_USERS";
+
+function localDate(offsetDays) {
+  const d = new Date(Date.now() + offsetDays * 864e5);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function expiryStamp(dateStr) {                      // 2026-11-30 -> 2026-11-30T23:59:59+0100 (as the native Explorer sends it)
+  const off = -new Date().getTimezoneOffset(), a = Math.abs(off);
+  return `${dateStr}T23:59:59${off < 0 ? "-" : "+"}${String(Math.floor(a / 60)).padStart(2, "0")}${String(a % 60).padStart(2, "0")}`;
+}
+async function loadProjectUsers() {
+  if (projUsers) return projUsers;
+  const j = (await tc(`/projects/${enc(project.id)}/users`)).json;
+  projUsers = listOf(j).filter(u => u && u.id).map(u => ({
+    id: String(u.id), email: u.email || "",
+    name: [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email || String(u.id),
+  }));
+  return projUsers;
+}
+
+function openShare(items) {
+  if (!items.length) return;
+  shareJob = { items, chosen: [], busy: false };
+  const files = items.filter(n => n.type === "FILE").length, folders = items.length - files;
+  $("shWhat").textContent = items.length === 1 ? `Sharing “${items[0].name}”.`
+    : `Sharing ${[files ? `${files} file${files === 1 ? "" : "s"}` : "", folders ? `${folders} folder${folders === 1 ? "" : "s"}` : ""].filter(Boolean).join(" and ")}.`;
+  $("shMode").value = "PROJECT_USERS";
+  $("shNote").value = ""; $("shInput").value = ""; $("shError").textContent = "";
+  $("shExpiry").value = localDate(30); $("shExpiry").min = localDate(0);
+  $("shLatest").checked = true;
+  $("shForm").classList.remove("hidden"); $("shDone").classList.add("hidden");
+  $("shOk").disabled = false;
+  shareModeChanged();
+  openDialog("dlgShare");
+}
+function shareModeChanged() {
+  const link = isLinkMode();
+  shareJob.chosen = [];                              // members and e-mail addresses are not interchangeable
+  $("shLinkOpts").classList.toggle("hidden", !link);
+  $("shPeopleLabel").textContent = link ? "People (optional, e-mail addresses to notify)" : "People";
+  $("shInput").placeholder = link ? "Please enter valid email address" : "Please enter users";
+  $("shInput").value = ""; $("shError").textContent = "";
+  renderChips(); renderSuggest();
+  if (!link) loadProjectUsers().then(renderSuggest).catch(e => { $("shError").textContent = "The project members could not be loaded: " + errText(e); });
+}
+function renderChips() {
+  const box = $("shChips");
+  box.querySelectorAll(".chip").forEach(c => c.remove());
+  const input = $("shInput");
+  for (const c of shareJob.chosen) {
+    const el = document.createElement("span");
+    el.className = "chip";
+    el.innerHTML = `${esc(c.label)}<button type="button" data-rm="${esc(c.id)}" title="Remove">✕</button>`;
+    box.insertBefore(el, input);
+  }
+}
+function renderSuggest() {
+  const box = $("shSuggest");
+  if (!shareJob || isLinkMode() || !projUsers || document.activeElement !== $("shInput")) { box.classList.add("hidden"); return; }
+  const q = $("shInput").value.trim().toLowerCase();
+  const taken = new Set(shareJob.chosen.map(c => c.id));
+  const hits = projUsers.filter(u => !taken.has(u.id) && (!q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))).slice(0, 40);
+  box.innerHTML = hits.map(u => `<div data-uid="${esc(u.id)}">${esc(u.name)}${u.email && u.email !== u.name ? `<small>${esc(u.email)}</small>` : ""}</div>`).join("")
+                  || '<div style="cursor:default;color:var(--text-3)">No matching project member.</div>';
+  box.classList.remove("hidden");
+}
+function addEmailChip() {
+  const raw = $("shInput").value.trim().replace(/[,;]+$/, "");
+  if (!raw) return true;
+  if (!EMAIL_RE.test(raw)) { $("shError").textContent = `“${raw}” is not a valid e-mail address.`; return false; }
+  if (!shareJob.chosen.some(c => c.id.toLowerCase() === raw.toLowerCase())) shareJob.chosen.push({ id: raw, label: raw });
+  $("shInput").value = ""; $("shError").textContent = "";
+  renderChips();
+  return true;
+}
+$("shMode").onchange = () => { if (shareJob) shareModeChanged(); };
+$("shInput").oninput = () => { if (shareJob && !isLinkMode()) renderSuggest(); };
+$("shInput").onfocus = () => { if (shareJob && !isLinkMode()) renderSuggest(); };
+$("shInput").onblur = () => { setTimeout(() => $("shSuggest").classList.add("hidden"), 150); if (shareJob && isLinkMode()) addEmailChip(); };
+$("shInput").onkeydown = e => {
+  if (!shareJob || !isLinkMode()) return;
+  if (["Enter", ",", ";", " "].includes(e.key)) { e.preventDefault(); addEmailChip(); }
+  else if (e.key === "Backspace" && !$("shInput").value && shareJob.chosen.length) { shareJob.chosen.pop(); renderChips(); }
+};
+$("shChips").onclick = e => {
+  const rm = e.target.closest("[data-rm]");
+  if (rm && shareJob) { shareJob.chosen = shareJob.chosen.filter(c => c.id !== rm.dataset.rm); renderChips(); renderSuggest(); return; }
+  $("shInput").focus();
+};
+$("shSuggest").onmousedown = e => {
+  const row = e.target.closest("[data-uid]");
+  if (!row || !shareJob) return;
+  e.preventDefault();
+  const u = (projUsers || []).find(x => x.id === row.dataset.uid);
+  if (u) { shareJob.chosen.push({ id: u.id, label: u.name }); $("shInput").value = ""; renderChips(); renderSuggest(); }
+};
+
+function collectLinks(res) {
+  const out = new Set();
+  const re = /https?:\/\/[^\s"'\\]+\/tc\/api\/2\.0\/s\/[^\s"'\\]+/g;
+  const walk = v => {
+    if (typeof v === "string") { for (const m of v.match(re) || []) out.add(m); }
+    else if (Array.isArray(v)) v.forEach(walk);
+    else if (v && typeof v === "object") Object.values(v).forEach(walk);
+  };
+  walk(res.json);
+  for (const m of String(res.text || "").replace(/\\\//g, "/").match(re) || []) out.add(m);
+  return [...out];
+}
+$("shOk").onclick = async () => {
+  if (!shareJob || shareJob.busy) return;
+  const link = isLinkMode();
+  if (link && $("shInput").value.trim() && !addEmailChip()) return;
+  if (!link && !shareJob.chosen.length) { $("shError").textContent = "Choose at least one project member."; return; }
+  if (link && !$("shExpiry").value) { $("shError").textContent = "Choose the date the link expires on."; return; }
+  const body = {
+    projectId: project.id,
+    mode: $("shMode").value,
+    message: $("shNote").value.trim(),
+    notify: shareJob.chosen.map(c => ({ id: c.id, type: link ? "EMAIL" : "USER" })),
+    objects: shareJob.items.map(n => link && n.type === "FILE" ? { id: n.id, type: n.type, useLatestVersion: $("shLatest").checked }
+                                                              : { id: n.id, type: n.type }),
+  };
+  if (link) { body.permission = $("shAccess").value; body.expiryDate = expiryStamp($("shExpiry").value); }
+  shareJob.busy = true; $("shOk").disabled = true; $("shError").textContent = "";
+  try {
+    const res = await tc("/shares", { method: "POST", body });
+    const links = collectLinks(res);
+    const n = shareJob.items.length;
+    $("shForm").classList.add("hidden"); $("shDone").classList.remove("hidden");
+    $("shCopy").classList.toggle("hidden", !links.length);
+    $("shLinks").classList.toggle("hidden", !links.length && !link);
+    if (links.length) {
+      $("shDoneText").textContent = `Shared ${n} item${n === 1 ? "" : "s"}. ${shareJob.chosen.length ? "The people you entered were notified." : ""} Links:`;
+      $("shLinks").value = links.join("\n");
+    } else if (link) {
+      $("shDoneText").textContent = `Shared ${n} item${n === 1 ? "" : "s"}, but Trimble Connect did not return a link in a form this tool recognises. Reply from Trimble Connect:`;
+      $("shLinks").value = (res.text || "").slice(0, 600);
+    } else {
+      $("shDoneText").textContent = `Shared ${n} item${n === 1 ? "" : "s"} with ${shareJob.chosen.length} project member${shareJob.chosen.length === 1 ? "" : "s"}.`;
+    }
+  } catch (e) {
+    $("shError").textContent = errText(e);
+    $("shOk").disabled = false;
+  } finally {
+    if (shareJob) shareJob.busy = false;
+  }
+};
+$("shCopy").onclick = async () => {
+  const t = $("shLinks").value;
+  try { await navigator.clipboard.writeText(t); toast("Links copied."); }
+  catch { $("shLinks").select(); try { document.execCommand("copy"); toast("Links copied."); } catch { toast("Press Ctrl+C to copy the selected links.", true); } }
+};
+$("pShare").onclick = () => { const n = nodes.get(focusId); if (n && n.id !== rootId) openShare([n]); };
+$("bShare").onclick = () => openShare([...sel].map(id => nodes.get(id)).filter(Boolean));
 
 /* =====================================================================
    ARCHIVE
