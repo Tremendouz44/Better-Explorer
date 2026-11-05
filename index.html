@@ -418,7 +418,7 @@
       <div id="shLinkOpts">
         <div class="row2">
           <div><label for="shExpiry">Link expires on</label><input id="shExpiry" type="date"></div>
-          <div><label for="shAccess">Access</label><select id="shAccess"><option value="VIEW">View only</option></select></div>
+          <div><label for="shAccess">Access</label><select id="shAccess"><option value="VIEW">View only</option><option value="DOWNLOAD">View &amp; download</option></select></div>
         </div>
         <label class="check"><input id="shLatest" type="checkbox" checked> Show latest version</label>
       </div>
@@ -495,7 +495,7 @@ import * as TCW from "https://esm.run/trimble-connect-workspace-api";
 /* =====================================================================
    SETTINGS
    ===================================================================== */
-const VERSION = "v2026-11-05.5";
+const VERSION = "v2026-11-05.6";
 const HOSTS = {                                  // project.location -> Core API host
   northamerica:  "https://app.connect.trimble.com",
   europe:        "https://app21.connect.trimble.com",
@@ -1428,12 +1428,30 @@ async function loadProjectUsers() {
   return projUsers;
 }
 
-function openShare(items) {
-  if (!items.length) return;
+// Folders cannot be shared: a folder stands for all the files inside it (and folders in it), and only files are sent.
+async function openShare(items) {
+  if (!items.length || ioBusy) return;
+  const folders = items.filter(n => n.type === "FOLDER");
+  let files = items.filter(n => n.type === "FILE");
+  if (folders.length) {
+    ioBusy = true;
+    try {
+      for (const f of folders) {
+        setStatus(`Reading “${f.name}”…`);
+        await loadSubtree(f.id);
+        for (const id of descFileIds(f.id)) { const n = nodes.get(id); if (n) files.push(n); }
+      }
+    } catch (e) { toast(errText(e), true); return; }
+    finally { ioBusy = false; setStatus(""); }
+    files = [...new Map(files.map(n => [n.id, n])).values()];
+  }
+  if (!files.length) { toast(folders.length === 1 ? `There are no files in “${folders[0].name}” to share.` : "There are no files to share.", true); return; }
+  openShareFiles(files, folders.length === 1 && items.length === 1 ? folders[0].name : "");
+}
+function openShareFiles(items, fromFolder) {
   shareJob = { items, chosen: [], busy: false };
-  const files = items.filter(n => n.type === "FILE").length, folders = items.length - files;
   $("shWhat").textContent = items.length === 1 ? `Sharing “${items[0].name}”.`
-    : `Sharing ${[files ? `${files} file${files === 1 ? "" : "s"}` : "", folders ? `${folders} folder${folders === 1 ? "" : "s"}` : ""].filter(Boolean).join(" and ")}.`;
+    : `Sharing ${items.length} files${fromFolder ? ` from “${fromFolder}”` : ""}.`;
   $("shMode").value = "PROJECT_USERS";
   $("shNote").value = ""; $("shInput").value = ""; $("shError").textContent = "";
   $("shExpiry").value = localDate(30); $("shExpiry").min = localDate(0);
