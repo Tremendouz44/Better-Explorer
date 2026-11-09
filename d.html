@@ -1,0 +1,476 @@
+<!doctype html>
+<!--
+  Better explorer by BJM – download page for "Direct download link"
+  Author: Branislav Jozef Murcin
+  Repository: https://github.com/tremendouz44/Better-Explorer
+
+  The part of the link after # holds the Trimble Connect share token and the list of files (with folder paths),
+  compressed and, when a password was set, encrypted. Nothing of it is sent to any server except Trimble Connect.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Shared files</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue: #0063a3; --blue-hover: #217cbb; --blue-dark: #004f83; --blue-tint: #e0eefa;
+    --text: #252a2e; --text-2: #464b52; --text-3: #6a6e79;
+    --line: #e0e1e9; --line-2: #cbcdd6; --guide: #8b90a0;
+    --bg: #f1f1f6; --white: #ffffff; --head: #f9f9fb;
+    --selected: #dcedf9; --hover: #f5f5f9; --red: #da212c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body { font-family: "Open Sans", Arial, sans-serif; font-size: 14px; color: var(--text); background: var(--bg); display: flex; flex-direction: column; min-height: 100vh; }
+  .hidden { display: none !important; }
+  button { font-family: inherit; }
+  svg.i { width: 20px; height: 20px; fill: currentColor; flex: none; }
+
+  .appbar { height: 52px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 16px; background: var(--blue-dark); color: #fff; }
+  .appbar svg { width: 24px; height: 24px; fill: #fff; }
+  .appbar .t { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .appbar .by { margin-left: auto; font-size: 12px; opacity: .8; white-space: nowrap; }
+
+  main { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 16px; }
+  .screen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; color: var(--text-2); padding: 24px 0; }
+  .screen h2 { margin: 0; font-size: 20px; font-weight: 400; color: var(--text); }
+  .screen p { margin: 0; max-width: 460px; line-height: 1.5; }
+  .spinner { width: 36px; height: 36px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--blue); animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .card { width: 100%; max-width: 400px; background: var(--white); padding: 24px; text-align: left; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .card h2 { margin: 0 0 6px; font-size: 20px; font-weight: 600; }
+  .card p { margin: 0 0 16px; color: var(--text-2); }
+  .card label { display: block; margin-bottom: 5px; font-size: 12px; color: var(--text-2); }
+  .card input { width: 100%; height: 40px; padding: 0 10px; font: inherit; color: var(--text); background: var(--white); border: 1px solid var(--line-2); border-bottom-color: var(--text-3); }
+  .card input:focus { outline: none; border-bottom: 2px solid var(--blue); }
+  .card .foot { display: flex; justify-content: flex-end; margin-top: 18px; }
+  .err { min-height: 18px; margin-top: 8px; font-size: 13px; color: var(--red); }
+
+  .btn-primary, .btn-secondary { height: 34px; padding: 0 16px; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .btn-primary { border: 1px solid var(--blue); background: var(--blue); color: #fff; }
+  .btn-primary:hover { background: var(--blue-hover); border-color: var(--blue-hover); }
+  .btn-secondary { border: 1px solid var(--blue); background: var(--white); color: var(--blue); }
+  .btn-secondary:hover { background: var(--blue-tint); }
+  .btn-primary:disabled, .btn-secondary:disabled { opacity: .55; cursor: default; }
+  .btn-primary svg.i { width: 18px; height: 18px; }
+
+  #scrMain { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .head h1 { margin: 0; font-size: 20px; font-weight: 400; word-break: break-word; }
+  .info { margin-top: 4px; font-size: 13px; color: var(--text-3); }
+  .bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 46px; margin: 12px 0 8px; padding: 6px 12px; background: var(--blue-tint); border-left: 4px solid var(--blue); }
+  .bar .cnt { font-weight: 600; }
+  .bar .grow { flex: 1; }
+  .prog { font-size: 13px; color: var(--text-2); }
+
+  .table-wrap { flex: 1; min-height: 200px; overflow: auto; background: var(--white); }
+  table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+  th { position: sticky; top: 0; z-index: 2; background: var(--head); height: 46px; padding: 0 12px; text-align: left; font-weight: 600; color: var(--text-3); border-bottom: 1px solid var(--line-2); white-space: nowrap; }
+  th:first-child, td.name { padding-left: 0; }
+  td { height: 44px; padding: 0 12px; box-shadow: inset 0 -1px 0 var(--line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover td { background: var(--hover); }
+  tbody tr.sel td { background: var(--selected); }
+  td.name { color: var(--text); }
+  .cell { display: flex; align-items: center; height: 44px; overflow: hidden; }
+  .nm { overflow: hidden; text-overflow: ellipsis; }
+  tr.folder .nm { font-weight: 600; }
+  .cbhit { width: 44px; align-self: stretch; flex: none; display: grid; place-items: center; cursor: pointer; }
+  .cbhit:hover { background: rgba(0,99,163,.10); }
+  input.cb { width: 22px; height: 22px; margin: 0; accent-color: var(--blue); cursor: pointer; pointer-events: none; }
+  .tog, .tog-gap { width: 24px; height: 24px; flex: none; }
+  .tog { display: grid; place-items: center; border: 0; background: none; padding: 0; cursor: pointer; color: #3d4148; border-radius: 4px; }
+  .tog:hover { background: var(--line); }
+  .tog svg { width: 22px; height: 22px; fill: currentColor; transition: transform .12s; }
+  .tog.open svg { transform: rotate(90deg); }
+  .ind { flex: none; }
+  svg.ico { width: 22px; height: 22px; flex: none; margin: 0 6px 0 2px; }
+  svg.ico.fold { fill: #3d4148; }
+  svg.ico.file { fill: #8a8e99; }
+  .foot-note { margin-top: 10px; font-size: 12px; color: var(--text-3); }
+  .col-size { width: 110px; } .col-date { width: 170px; }
+  @media (max-width: 640px) { .col-date, td.date, th.date { display: none; } .appbar .by { display: none; } }
+</style>
+</head>
+<body>
+<header class="appbar">
+  <svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2Z"/></svg>
+  <span class="t" id="appTitle">Shared files</span>
+  <span class="by">Better explorer by BJM</span>
+</header>
+<main>
+  <section id="scrLoad" class="screen"><div class="spinner"></div><p>Opening the shared files…</p></section>
+
+  <section id="scrPass" class="screen hidden">
+    <form class="card" id="pwForm" autocomplete="off">
+      <h2>Password required</h2>
+      <p>These files are protected. Enter the password you received with the link.</p>
+      <label for="pw">Password</label>
+      <input id="pw" type="password" autocomplete="current-password">
+      <div id="pwErr" class="err"></div>
+      <div class="foot"><button id="pwOk" class="btn-primary" type="submit">Open</button></div>
+    </form>
+  </section>
+
+  <section id="scrMsg" class="screen hidden"><h2 id="msgT"></h2><p id="msgP"></p></section>
+
+  <section id="scrMain" class="hidden">
+    <div class="head"><h1 id="title"></h1><div id="info" class="info"></div></div>
+    <div class="bar">
+      <span id="cnt" class="cnt"></span>
+      <span class="grow"></span>
+      <span id="prog" class="prog"></span>
+      <button id="bSep" class="btn-secondary hidden" type="button" title="Every file is downloaded on its own (no folders)">Download separately</button>
+      <button id="bDl" class="btn-primary" type="button">
+        <svg class="i" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7ZM5 18v2h14v-2H5Z"/></svg><span id="bDlText">Download</span>
+      </button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <colgroup><col><col class="col-size"><col class="col-date"></colgroup>
+        <thead><tr>
+          <th><div class="cell"><span class="cbhit" id="cbAllHit" title="Select everything"><input type="checkbox" id="cbAll" class="cb" tabindex="-1" aria-label="Select everything"></span>Name</div></th>
+          <th>Size</th>
+          <th class="date">Modified</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div class="foot-note">Files are downloaded straight from Trimble Connect. Several files can be downloaded as one ZIP that keeps the folders.</div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const ARROW = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+const FOLDER_ICON = '<svg class="ico fold" viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2Z"/></svg>';
+const FILE_ICON = '<svg class="ico file" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6Zm-1 7V3.5L18.5 9H13Z"/></svg>';
+const ZIP_MAX = 3.5 * 1024 ** 3;
+
+function fmtSize(b) {
+  if (b == null || b < 0) return "";
+  if (b < 1024) return b + " B";
+  const u = ["KB", "MB", "GB", "TB"]; let i = -1;
+  do { b /= 1024; i++; } while (b >= 1024 && i < u.length - 1);
+  return b.toFixed(b < 10 ? 2 : b < 100 ? 1 : 0) + " " + u[i];
+}
+function fmtDate(sec) {
+  if (!sec) return "";
+  const d = new Date(sec * 1000);
+  return d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) + " " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function show(id) { for (const s of ["scrLoad", "scrPass", "scrMsg", "scrMain"]) $(s).classList.toggle("hidden", s !== id); }
+function message(t, p) { $("msgT").textContent = t; $("msgP").textContent = p; show("scrMsg"); }
+
+/* ---------- reading the link ---------- */
+function unb64u(s) {
+  s = s.replace(/-/g, "+").replace(/_/g, "/");
+  const bin = atob(s + "=".repeat((4 - s.length % 4) % 4));
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+async function inflate(bytes) {
+  return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer());
+}
+async function decrypt(bytes, password) {
+  const salt = bytes.subarray(0, 16), iv = bytes.subarray(16, 28), ct = bytes.subarray(28);
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: 250000, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  return new Uint8Array(await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ct));   // throws on a wrong password
+}
+async function unpack(raw, password) {
+  const flags = raw[0];
+  let data = raw.subarray(1);
+  if (flags & 2) data = await decrypt(data, password);
+  if (flags & 1) data = await inflate(data);
+  return JSON.parse(new TextDecoder().decode(data));
+}
+
+/* ---------- Trimble Connect access through the share ---------- */
+let M = null;                   // what the link describes: { a: API base, t: token, n: title, e: expiry, k: tree?, f: [[id, path, size, mtime]] }
+let share = null;               // GET /shares/token/<token>: accessToken + objects (each file has its own token)
+const objToken = new Map();     // file id -> its own share token
+
+class HttpError extends Error { constructor(status, text) { super(text); this.status = status; } }
+async function loadShare() {
+  const r = await fetch(`${M.a}/shares/token/${encodeURIComponent(M.t)}`);
+  if (!r.ok) throw new HttpError(r.status, await r.text());
+  share = await r.json();
+  objToken.clear();
+  for (const o of share.objects || []) {
+    const t = String(o.url || "").match(/\/s\/([A-Za-z0-9_-]{20,})/)?.[1];
+    if (o.id && t) objToken.set(String(o.id), t);
+  }
+}
+async function getJson(path, bearer, stoken) {
+  const r = await fetch(M.a + path, { headers: { Authorization: "Bearer " + bearer, "x-share-token": stoken } });
+  if (!r.ok) throw new HttpError(r.status, await r.text());
+  return r.json();
+}
+// a fresh address of the file itself (valid for a short time, so it is asked for right before each download)
+async function downloadUrl(id) {
+  const path = `/files/fs/${encodeURIComponent(id)}/downloadurl`;
+  try { return (await getJson(path, share.accessToken, M.t)).url; }
+  catch (e) { if (!(e instanceof HttpError) || ![401, 403].includes(e.status)) throw e; }
+  await loadShare();                                         // the access token may have expired
+  try { return (await getJson(path, share.accessToken, M.t)).url; }
+  catch (e) { if (!(e instanceof HttpError) || ![401, 403].includes(e.status)) throw e; }
+  const t = objToken.get(id);                                // last try: the file's own token
+  if (!t) throw new Error("This file is no longer part of the share.");
+  const r = await fetch(`${M.a}/shares/token/${encodeURIComponent(t)}`);
+  if (!r.ok) throw new HttpError(r.status, await r.text());
+  const own = await r.json();
+  return (await getJson(path, own.accessToken, t)).url;
+}
+
+/* ---------- tree ---------- */
+const nodes = new Map();        // key -> { key, name, type, parent, kids[], id, size, mtime }
+const sel = new Set();          // selected file keys
+const open = new Set();
+const ROOT = "/";
+function build() {
+  nodes.set(ROOT, { key: ROOT, name: "", type: "FOLDER", parent: null, kids: [] });
+  M.f.forEach(([id, path, size, mtime], i) => {
+    const segs = M.k ? String(path).split("/").filter(Boolean) : [String(path)];
+    let parent = ROOT;
+    for (let j = 0; j < segs.length - 1; j++) {
+      const key = parent + segs[j] + "/";
+      if (!nodes.has(key)) { nodes.set(key, { key, name: segs[j], type: "FOLDER", parent, kids: [] }); nodes.get(parent).kids.push(key); }
+      parent = key;
+    }
+    const key = "#" + i;
+    nodes.set(key, { key, name: segs[segs.length - 1] || id, type: "FILE", parent, id: String(id), size: size >= 0 ? size : null, mtime });
+    nodes.get(parent).kids.push(key);
+  });
+  for (const k of nodes.get(ROOT).kids) {                    // first two levels open
+    if (nodes.get(k).type !== "FOLDER") continue;
+    open.add(k);
+    for (const c of nodes.get(k).kids) if (nodes.get(c).type === "FOLDER") open.add(c);
+  }
+}
+const files = key => { const n = nodes.get(key); return n.type === "FILE" ? [key] : n.kids.flatMap(files); };
+const byName = (a, b) => (a.type !== b.type ? (a.type === "FOLDER" ? -1 : 1) : a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
+function pathOf(key) { const out = []; for (let n = nodes.get(key); n && n.key !== ROOT; n = nodes.get(n.parent)) out.unshift(n.name); return out.join("/"); }
+
+function render() {
+  const rows = [];
+  const walk = (key, depth) => {
+    for (const n of nodes.get(key).kids.map(k => nodes.get(k)).sort(byName)) {
+      const isF = n.type === "FOLDER";
+      const fs = isF ? files(n.key) : null, on = isF ? fs.filter(k => sel.has(k)).length : 0;
+      const checked = isF ? fs.length > 0 && on === fs.length : sel.has(n.key), ind = isF && on > 0 && on < fs.length;
+      const size = isF ? fs.reduce((s, k) => s + (nodes.get(k).size || 0), 0) : n.size;
+      rows.push(`<tr data-key="${esc(n.key)}" class="${isF ? "folder " : ""}${checked ? "sel" : ""}">
+        <td class="name"><div class="cell">
+          <span class="cbhit" data-cb="${esc(n.key)}"><input type="checkbox" class="cb" tabindex="-1" ${checked ? "checked" : ""} ${ind ? 'data-ind="1"' : ""} aria-label="Select"></span>
+          <span class="ind" style="width:${depth * 24}px"></span>
+          ${isF ? `<button type="button" class="tog${open.has(n.key) ? " open" : ""}" data-tog="${esc(n.key)}">${ARROW}</button>` : '<span class="tog-gap"></span>'}
+          ${isF ? FOLDER_ICON : FILE_ICON}<span class="nm" title="${esc(n.name)}">${esc(n.name)}</span>
+        </div></td>
+        <td>${esc(fmtSize(size))}</td>
+        <td class="date">${isF ? "" : esc(fmtDate(n.mtime))}</td></tr>`);
+      if (isF && open.has(n.key)) walk(n.key, depth + 1);
+    }
+  };
+  walk(ROOT, 0);
+  $("rows").innerHTML = rows.join("");
+  document.querySelectorAll('#rows input.cb[data-ind="1"]').forEach(el => { el.indeterminate = true; });
+  const all = files(ROOT), n = sel.size;
+  $("cbAll").checked = n > 0 && n === all.length;
+  $("cbAll").indeterminate = n > 0 && n < all.length;
+  const target = n ? n : all.length;
+  $("cnt").textContent = n ? `${n} of ${all.length} file${all.length === 1 ? "" : "s"} selected` : `${all.length} file${all.length === 1 ? "" : "s"}`;
+  $("bDlText").textContent = target === 1 ? "Download" : n ? `Download ${n} as ZIP` : "Download all as ZIP";
+  $("bSep").classList.toggle("hidden", target < 2);
+  $("bDl").disabled = $("bSep").disabled = busy;
+}
+
+$("rows").onclick = e => {
+  const cb = e.target.closest(".cbhit"), tog = e.target.closest("[data-tog]");
+  if (cb) {
+    const fs = files(cb.dataset.cb), allOn = fs.every(k => sel.has(k));
+    for (const k of fs) allOn ? sel.delete(k) : sel.add(k);
+    render(); return;
+  }
+  const tr = e.target.closest("tr");
+  if (!tr) return;
+  const n = nodes.get(tr.dataset.key);
+  if (n.type === "FOLDER" || tog) { open.has(n.key) ? open.delete(n.key) : open.add(n.key); render(); return; }
+  sel.has(n.key) ? sel.delete(n.key) : sel.add(n.key);       // a click on a file row ticks it
+  render();
+};
+$("cbAllHit").onclick = () => {
+  const all = files(ROOT), allOn = all.every(k => sel.has(k));
+  for (const k of all) allOn ? sel.delete(k) : sel.add(k);
+  render();
+};
+
+/* ---------- downloading ---------- */
+let busy = false;
+const chosen = () => (sel.size ? [...sel] : files(ROOT)).map(k => nodes.get(k));
+function clickLink(href, name) {
+  const a = document.createElement("a");
+  a.href = href; if (name) a.download = name; a.rel = "noopener";
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function errText(e) {
+  if (e instanceof HttpError) {
+    if ([401, 403, 404, 410].includes(e.status)) return "Trimble Connect refused the download (the share may have been removed or has expired).";
+    return `Trimble Connect answered ${e.status}.`;
+  }
+  return e?.message || String(e);
+}
+async function run(fn) {
+  if (busy) return;
+  busy = true; render();
+  try { await fn(); } catch (e) { $("prog").textContent = errText(e); }
+  finally { busy = false; render(); }
+}
+async function downloadOne(n) {
+  $("prog").textContent = `Preparing “${n.name}”…`;
+  clickLink(await downloadUrl(n.id), n.name);
+  $("prog").textContent = `“${n.name}” is downloading.`;
+}
+$("bDl").onclick = () => run(async () => {
+  const list = chosen();
+  if (list.length === 1) return downloadOne(list[0]);
+  return downloadZip(list);
+});
+$("bSep").onclick = () => run(async () => {
+  const list = chosen(); let failed = 0, last = "";
+  for (let i = 0; i < list.length; i++) {
+    $("prog").textContent = `Downloading ${i + 1} of ${list.length}…`;
+    try { clickLink(await downloadUrl(list[i].id), list[i].name); } catch (e) { failed++; last = errText(e); }
+    if (i < list.length - 1) await sleep(700);              // browsers dislike a burst of downloads
+  }
+  $("prog").textContent = failed ? `${list.length - failed} downloaded, ${failed} failed. ${last}` : `${list.length} files are downloading.`;
+});
+
+/* ---- ZIP built in the browser (files are stored, not compressed) ---- */
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+  return t;
+})();
+async function crcOfBlob(blob) {
+  let crc = 0xFFFFFFFF;
+  for (let off = 0; off < blob.size; off += 8 * 1048576) {
+    const buf = new Uint8Array(await blob.slice(off, off + 8 * 1048576).arrayBuffer());
+    for (let i = 0; i < buf.length; i++) crc = CRC_TABLE[(crc ^ buf[i]) & 0xFF] ^ (crc >>> 8);
+  }
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+function buildZip(entries) {                         // entries: [{ path, blob, crc, mtime(ms) }]
+  const enc8 = new TextEncoder(), parts = [], central = [];
+  let offset = 0;
+  for (const e of entries) {
+    const name = enc8.encode(e.path), d = new Date(e.mtime || Date.now());
+    const time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+    const date = (Math.max(d.getFullYear() - 1980, 0) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+    const lh = new DataView(new ArrayBuffer(30 + name.length));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true);
+    lh.setUint16(10, time, true); lh.setUint16(12, date, true); lh.setUint32(14, e.crc, true);
+    lh.setUint32(18, e.blob.size, true); lh.setUint32(22, e.blob.size, true); lh.setUint16(26, name.length, true); lh.setUint16(28, 0, true);
+    new Uint8Array(lh.buffer).set(name, 30);
+    parts.push(lh.buffer, e.blob);
+    const ch = new DataView(new ArrayBuffer(46 + name.length));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true);
+    ch.setUint16(12, time, true); ch.setUint16(14, date, true); ch.setUint32(16, e.crc, true);
+    ch.setUint32(20, e.blob.size, true); ch.setUint32(24, e.blob.size, true); ch.setUint16(28, name.length, true);
+    ch.setUint32(42, offset, true);
+    new Uint8Array(ch.buffer).set(name, 46);
+    central.push(ch.buffer);
+    offset += lh.byteLength + e.blob.size;
+  }
+  const cdSize = central.reduce((s, b) => s + b.byteLength, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, entries.length, true); end.setUint16(10, entries.length, true);
+  end.setUint32(12, cdSize, true); end.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, end.buffer], { type: "application/zip" });
+}
+async function pool(items, n, fn) {
+  let i = 0;
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (i < items.length) await fn(items[i++]); }));
+}
+async function downloadZip(list) {
+  const total = list.reduce((s, n) => s + (n.size || 0), 0);
+  if (total > ZIP_MAX) throw new Error(`Too much for one ZIP in the browser (${fmtSize(total)}). Use “Download separately” or choose fewer files.`);
+  const used = new Set(), entries = [], failed = [];
+  const named = list.map(n => {
+    let path = M.k ? pathOf(n.key) : n.name;
+    if (used.has(path.toLowerCase())) {                       // same name twice (only possible without folders): name (2).ext
+      const dot = n.name.lastIndexOf("."), base = dot > 0 ? n.name.slice(0, dot) : n.name, ext = dot > 0 ? n.name.slice(dot) : "";
+      const dir = path.slice(0, path.length - n.name.length);
+      for (let i = 2; ; i++) { path = `${dir}${base} (${i})${ext}`; if (!used.has(path.toLowerCase())) break; }
+    }
+    used.add(path.toLowerCase());
+    return { n, path };
+  });
+  let done = 0;
+  await pool(named, 3, async ({ n, path }) => {
+    try {
+      const res = await fetch(await downloadUrl(n.id));
+      if (!res.ok) throw new HttpError(res.status, "");
+      const blob = await res.blob();
+      entries.push({ path, blob, crc: await crcOfBlob(blob), mtime: n.mtime ? n.mtime * 1000 : 0 });
+    } catch (e) { failed.push(`${n.name}: ${errText(e)}`); }
+    $("prog").textContent = `Preparing ZIP: ${++done} of ${named.length} files (${fmtSize(total)})`;
+  });
+  if (!entries.length) throw new Error(failed[0] || "Nothing could be downloaded.");
+  entries.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }));
+  const url = URL.createObjectURL(buildZip(entries));
+  const zipName = (String(M.n || "Shared files").replace(/[\\/:*?"<>|]+/g, " ").trim() || "Shared files") + ".zip";
+  clickLink(url, zipName);
+  setTimeout(() => URL.revokeObjectURL(url), 120000);
+  $("prog").textContent = failed.length ? `${zipName}: ${entries.length} files, ${failed.length} failed (${failed[0]})` : `${zipName} is downloading (${entries.length} files).`;
+}
+
+/* ---------- start ---------- */
+async function opened() {
+  try { await loadShare(); }
+  catch (e) {
+    if (e instanceof HttpError && e.status >= 400 && e.status < 500) return message("This link no longer works", "The share was removed in Trimble Connect or it has expired. Ask the sender for a new link.");
+    return message("Trimble Connect could not be reached", errText(e) + " Check the connection and reload the page.");
+  }
+  document.title = M.n || "Shared files";
+  $("appTitle").textContent = M.n || "Shared files";
+  $("title").textContent = M.n || "Shared files";
+  const total = M.f.reduce((s, f) => s + (f[2] > 0 ? f[2] : 0), 0);
+  $("info").textContent = [`${M.f.length} file${M.f.length === 1 ? "" : "s"}`, fmtSize(total), M.e ? `link valid until ${M.e}` : ""].filter(Boolean).join(" · ");
+  build(); render(); show("scrMain");
+}
+async function start() {
+  const frag = location.hash.slice(1);
+  if (!frag) return message("No files in this link", "The link is incomplete. Copy the whole link, including everything after the # sign.");
+  let raw;
+  try { raw = unb64u(frag); } catch { return message("This link is damaged", "Copy the whole link again, including everything after the # sign."); }
+  if (typeof DecompressionStream !== "function" || !crypto?.subtle) return message("This browser is too old", "Open the link in a current Chrome, Edge, Firefox or Safari.");
+  if (raw[0] & 2) {
+    show("scrPass"); $("pw").focus();
+    $("pwForm").onsubmit = async e => {
+      e.preventDefault();
+      $("pwOk").disabled = true; $("pwErr").textContent = "";
+      try { M = await unpack(raw, $("pw").value); }
+      catch { $("pwErr").textContent = "Wrong password."; $("pwOk").disabled = false; $("pw").select(); return; }
+      show("scrLoad"); opened();
+    };
+    return;
+  }
+  try { M = await unpack(raw, ""); } catch { return message("This link is damaged", "Copy the whole link again, including everything after the # sign."); }
+  opened();
+}
+window.addEventListener("hashchange", () => location.reload());
+start();
+</script>
+</body>
+</html>
