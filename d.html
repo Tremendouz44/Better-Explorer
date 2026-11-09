@@ -105,7 +105,7 @@
   <span class="by">Better explorer by BJM</span>
 </header>
 <main>
-  <section id="scrLoad" class="screen"><div class="spinner"></div><p>Opening the shared files…</p></section>
+  <section id="scrLoad" class="screen"><div class="spinner"></div><p id="loadText">Opening the shared files…</p></section>
 
   <section id="scrPass" class="screen hidden">
     <form class="card" id="pwForm" autocomplete="off">
@@ -435,6 +435,36 @@ async function downloadZip(list) {
   $("prog").textContent = failed.length ? `${zipName}: ${entries.length} files, ${failed.length} failed (${failed[0]})` : `${zipName} is downloading (${entries.length} files).`;
 }
 
+// every file of the share: name, size, date and its folders (Trimble returns the folder path of each file)
+async function readFiles() {
+  const ids = [...new Set((share.objects || []).filter(o => !o.type || o.type === "FILE").map(o => String(o.id)))];
+  const got = new Map(); let done = 0;
+  $("loadText").textContent = `Reading ${ids.length} file${ids.length === 1 ? "" : "s"}…`;
+  await pool(ids, 6, async id => {
+    let f = null;
+    try { f = await getJson(`/files/${encodeURIComponent(id)}`, share.accessToken, M.t); }
+    catch (e) {
+      const t = objToken.get(id);                            // fall back to the file's own token
+      if (t) try {
+        const r = await fetch(`${M.a}/shares/token/${encodeURIComponent(t)}`);
+        if (r.ok) f = await getJson(`/files/${encodeURIComponent(id)}`, (await r.json()).accessToken, t);
+      } catch { /* skipped below */ }
+    }
+    if (f) got.set(id, f);
+    $("loadText").textContent = `Reading files: ${++done} of ${ids.length}…`;
+  });
+  const list = ids.filter(id => got.has(id)).map(id => {
+    const f = got.get(id);
+    return { id, name: String(f.name || id), dirs: (Array.isArray(f.path) ? f.path : []).map(p => String(p.name || "")).filter(Boolean),
+             size: Number.isFinite(+f.size) ? +f.size : -1, mtime: Math.round(Date.parse(f.modifiedOn || f.createdOn) / 1000) || 0 };
+  });
+  // folders all files share are dropped, except the last one (the shared folder keeps its name)
+  let common = list.length ? list[0].dirs : [];
+  for (const x of list) { let i = 0; while (i < common.length && i < x.dirs.length && common[i] === x.dirs[i]) i++; common = common.slice(0, i); }
+  const cut = Math.max(common.length - 1, 0);
+  return list.map(x => [x.id, M.k ? [...x.dirs.slice(cut), x.name].join("/") : x.name, x.size, x.mtime]);
+}
+
 /* ---------- start ----------
    Link formats after #:  "2<host>~<token>"            short link, the file list is in the share's note
                           "3<base64url>"                 the same, "<host>~<token>" encrypted with the password
@@ -451,9 +481,15 @@ async function opened() {
     const note = String(share.message || "");
     try {
       if (!note.startsWith(NOTE_TAG)) throw new Error("no list");
-      Object.assign(M, await unpack(unb64u(note.slice(NOTE_TAG.length)), password));
-      if (!Array.isArray(M.f)) throw new Error("no list");
-    } catch { return message("The list of files is missing", "The note of this share was changed in Trimble Connect, so the files cannot be listed. Ask the sender for a new link."); }
+      const data = note.slice(NOTE_TAG.length).split("~")[0];
+      if (data) Object.assign(M, await unpack(unb64u(data), password));
+      else Object.assign(M, { n: "Shared files", e: "", k: 1 });     // a share whose note only marks it as a Direct link
+    } catch { return message("This link cannot be opened", "The note of this share was changed in Trimble Connect. Ask the sender for a new link."); }
+    if (!Array.isArray(M.f)) {                               // newer links: the files are read from Trimble Connect
+      try { M.f = await readFiles(); }
+      catch (e) { return message("The files could not be read", errText(e) + " Reload the page to try again."); }
+      if (!M.f.length) return message("No files left in this share", "The shared files were deleted or moved out of reach in Trimble Connect.");
+    }
   }
   document.title = M.n || "Shared files";
   $("appTitle").textContent = M.n || "Shared files";

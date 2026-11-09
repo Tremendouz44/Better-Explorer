@@ -205,6 +205,12 @@
   .lk.done .lk-state { color: #1a7f37; font-weight: 600; }
   .note { font-size: 13px; color: var(--text-2); }
   .modal.wide { width: min(720px, 100%); }
+  .pwbox { position: relative; }
+  .modal .pwbox input { padding-right: 42px; }
+  .eye { position: absolute; right: 3px; top: 3px; width: 34px; height: 34px; border: 0; border-radius: 50%; background: none; color: var(--text-3); display: grid; place-items: center; cursor: pointer; }
+  .eye:hover { background: var(--line); }
+  .eye.on { color: var(--blue); }
+  .dlk .pw { font-family: Consolas, monospace; color: var(--text); }
   .dlk-list { margin-top: 10px; max-height: 55vh; overflow: auto; border: 1px solid var(--line); background: var(--white); }
   .dlk { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
   .dlk:last-child { border-bottom: 0; }
@@ -494,7 +500,7 @@
         <label class="check"><input id="sdTree" type="checkbox" checked> Keep folder tree</label>
         <div class="row2">
           <div><label for="sdExpiry">Link expires on (empty = never)</label><input id="sdExpiry" type="date"></div>
-          <div><label for="sdPass">Password (optional)</label><input id="sdPass" type="password" autocomplete="new-password"></div>
+          <div><label for="sdPass">Password (optional)</label><div class="pwbox"><input id="sdPass" type="password" autocomplete="new-password"><button id="sdEye" class="eye" type="button" title="Show password"><svg class="i" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5ZM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg></button></div></div>
         </div>
       </div>
       <p id="shNoPreview" class="note hidden">Trimble Connect cannot show some of these files (for example ZIP), so a share link opens a page without a preview. “Direct download link” gives a link that downloads the file.</p>
@@ -561,6 +567,7 @@
       </button>
     </div>
     <p id="dlkInfo" class="note"></p>
+    <label class="check hidden" id="dlkAllBox"><input id="dlkAll" type="checkbox"> Show all shares in this project (also the ones made in the native Explorer)</label>
     <div id="dlkList" class="dlk-list"></div>
     <div id="dlkError" class="form-error"></div>
     <div class="m-foot"><button class="btn-primary" type="button" data-close="dlgLinks">Close</button></div>
@@ -641,7 +648,7 @@ import * as TCW from "https://esm.run/trimble-connect-workspace-api";
 /* =====================================================================
    SETTINGS
    ===================================================================== */
-const VERSION = "v2026-11-09.4";
+const VERSION = "v2026-11-09.8";
 const HOSTS = {                                  // project.location -> Core API host
   northamerica:  "https://app.connect.trimble.com",
   europe:        "https://app21.connect.trimble.com",
@@ -777,6 +784,24 @@ async function pool(items, n, fn) {
 }
 
 /* ---- region ---- */
+// role of the signed-in user in this project (ADMIN / USER …), as PointCloud Manager reads it
+async function getRole(api21) {
+  let url = api21 + "/projects?fields=role&pageSize=500";
+  for (let page = 0; url && page < 10; page++) {
+    const r = await tc(url);
+    const hit = listOf(r.json).find(x => String(x.id) === String(project.id));
+    if (hit) return String(hit.role || "").toUpperCase();
+    url = nextLink(r.headers) || r.json?.links?.next?.href || r.json?.next || null;
+  }
+  try {                                              // fallback: the member list
+    const me = (await tc("/users/me")).json || {};
+    const r = await tc(`/projects/${enc(project.id)}/users`);
+    const m = listOf(r.json).find(u => (me.id && String(u.id) === String(me.id)) ||
+      (me.email && String(u.email || "").toLowerCase() === String(me.email).toLowerCase()));
+    if (m) return String(m.role || "").toUpperCase();
+  } catch { /* ignore */ }
+  return "";
+}
 async function resolveHost(location) {
   const key = String(location || "").toLowerCase().replace(/[^a-z]/g, "");
   if (HOSTS[key]) return HOSTS[key];
@@ -1925,6 +1950,7 @@ function openShareFiles(items, fromFolder, paths, title) {
   $("shNote").value = ""; $("shInput").value = ""; $("shError").textContent = "";
   $("shExpiry").value = ""; $("shExpiry").min = localDate(0);           // no date = the link does not expire (as in the native Explorer)
   $("sdExpiry").value = ""; $("sdExpiry").min = localDate(0); $("sdPass").value = ""; $("sdTree").checked = true;
+  $("sdPass").type = "password"; $("sdEye").classList.remove("on"); $("sdEye").title = "Show password";
   $("shLatest").checked = true;
   $("shForm").classList.remove("hidden"); $("shDone").classList.add("hidden");
   $("shOk").disabled = false;
@@ -2051,9 +2077,23 @@ async function packLink(obj, password) {                // flags byte (1 = compr
   return b64u(out);
 }
 const unb64u = t => { t = t.replace(/-/g, "+").replace(/_/g, "/"); const bin = atob(t + "=".repeat((4 - t.length % 4) % 4)); return Uint8Array.from(bin, c => c.charCodeAt(0)); };
+async function unpackWith(note, pw) {                  // the note's list when it is encrypted with the link's password
+  try {
+    const raw = unb64u(String(note).slice(4).split("~")[0]);
+    let data = raw.subarray(1);
+    if (raw[0] & 2) {
+      const salt = data.subarray(0, 16), iv = data.subarray(16, 28);
+      const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
+      const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: 250000, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+      data = new Uint8Array(await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, data.subarray(28)));
+    }
+    if (raw[0] & 1) data = new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer());
+    return JSON.parse(new TextDecoder().decode(data));
+  } catch { return null; }
+}
 async function peekNote(note) {                        // the file list in a share's note, if it is not encrypted
   try {
-    const raw = unb64u(String(note).slice(4));
+    const raw = unb64u(String(note).slice(4).split("~")[0]);
     if (raw[0] & 2) return null;
     let data = raw.subarray(1);
     if (raw[0] & 1) data = new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer());
@@ -2061,6 +2101,26 @@ async function peekNote(note) {                        // the file list in a sha
   } catch { return null; }
 }
 const NOTE_TAG = "BE1.";                                // marks the note of a share made for a Direct link
+// The link's password is kept in the note too (after "~"), sealed with a key made from the shared file ids, so that
+// "Direct links" can show it later. Only people who can read the share anyway (project members, link holders) get to it.
+async function idsKey(ids) {
+  const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("BE|" + [...ids].map(String).sort().join("|")));
+  return crypto.subtle.importKey("raw", h, "AES-GCM", false, ["encrypt", "decrypt"]);
+}
+async function sealPassword(pass, ids) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await idsKey(ids), new TextEncoder().encode(pass)));
+  const out = new Uint8Array(12 + ct.length); out.set(iv, 0); out.set(ct, 12);
+  return b64u(out);
+}
+async function openPassword(note, ids) {
+  try {
+    const part = String(note).split("~")[1];
+    if (!part) return "";
+    const raw = unb64u(part);
+    return new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: raw.subarray(0, 12) }, await idsKey(ids), raw.subarray(12)));
+  } catch { return ""; }
+}
 const hostCode = () => API.match(/^https:\/\/app(\d*)\.connect\.trimble\.com\/tc\/api\/2\.0$/)?.[1];
 const LINKS_KEY = () => "be.dlinks." + project.id;
 function savedLinks() { try { return JSON.parse(localStorage.getItem(LINKS_KEY()) || "[]"); } catch { return []; } }
@@ -2076,15 +2136,18 @@ async function createDirectShare() {
     const body = { projectId: project.id, mode: "PUBLIC", message: "", notify: [], permission: "DOWNLOAD",
                    objects: job.items.map(n => ({ id: n.id, type: "FILE", useLatestVersion: true })) };
     if (exp) body.expiryDate = expiryStamp(exp);
-    // short link: the file list goes into the share's note, the link only carries the token
+    // short link: the note keeps only the title, expiry and tree switch; the page reads the files (names, folders, sizes)
+    // from Trimble Connect through the share itself, so the link stays short for any number of files
     const hc = hostCode();
     let short = hc != null, why = "";
-    if (short) body.message = NOTE_TAG + await packLink(list, pass);
+    if (short) body.message = NOTE_TAG + await packLink({ v: 2, n: list.n, e: list.e, k: list.k }, pass)
+                              + (pass ? "~" + await sealPassword(pass, job.items.map(n => n.id)) : "");
     let res;
     try { res = await tc("/shares", { method: "POST", body }); }
     catch (e) {
       if (!short || !(e instanceof ApiError) || e.status >= 500) throw e;
-      short = false; why = errText(e); body.message = "";            // e.g. the note is too long: the list goes into the link
+      short = false; why = errText(e);                               // e.g. the note is too long: the list goes into the link, the note only marks it as ours
+      body.message = NOTE_TAG + (pass ? "~" + await sealPassword(pass, job.items.map(n => n.id)) : "");
       res = await tc("/shares", { method: "POST", body });
     }
     const objs = listOf(res.json?.objects ?? res.json);
@@ -2095,7 +2158,7 @@ async function createDirectShare() {
     if (short) frag = pass ? "3" + b64u(await encryptBytes(new TextEncoder().encode(hc + "~" + tok), pass)) : "2" + hc + "~" + tok;
     else frag = await packLink({ v: 1, a: API, t: tok, ...list }, pass);
     const link = DL_PAGE() + "#" + frag;
-    storeLinks([...savedLinks(), { id: String(res.json?.id || ""), title: job.title, files: files.length, created: Date.now(), expiry: exp || "", pass: !!pass, link }]);
+    storeLinks([...savedLinks(), { id: String(res.json?.id || ""), title: job.title, files: files.length, created: Date.now(), expiry: exp || "", pass: !!pass, pw: pass || "", link }]);
     $("shForm").classList.add("hidden"); $("shDone").classList.remove("hidden");
     $("shCopy").classList.add("hidden"); $("shLinks").classList.add("hidden"); $("shList").classList.remove("hidden");
     $("shLinks").value = link;
@@ -2119,35 +2182,59 @@ async function openLinks() {
   $("dlkList").innerHTML = '<div class="dlk-none">Loading…</div>';
   const local = savedLinks(), byId = new Map(local.filter(x => x.id).map(x => [x.id, x]));
   let server = null;
-  try { server = listOf((await tc(`/shares?projectId=${enc(project.id)}`)).json).filter(x => String(x?.message || "").startsWith(NOTE_TAG)); }
+  try { server = listOf((await tc(`/shares?projectId=${enc(project.id)}`)).json).filter(x => x && x.id); }
   catch { /* Trimble Connect may not list shares: only the links made in this browser are shown */ }
+  $("dlkAllBox").classList.toggle("hidden", !server);
   if (server) {
     const hc = hostCode();
     dlkRows = await Promise.all(server.map(async x => {
-      const id = String(x.id), mine = byId.get(id), info = mine ? null : await peekNote(x.message);
-      const tok = listOf(x.objects).map(o => String(o?.url || "").match(/\/s\/([A-Za-z0-9_-]{20,})/)?.[1]).find(Boolean);
-      return { id, title: mine?.title || info?.n || "(password protected)", files: listOf(x.objects).length || mine?.files || 0,
+      const id = String(x.id), mine = byId.get(id), note = String(x.message || ""), objs = listOf(x.objects);
+      const tagged = note.startsWith(NOTE_TAG), hasList = tagged && note.length > NOTE_TAG.length && note[NOTE_TAG.length] !== "~";
+      const info = !mine && hasList ? await peekNote(note) : null;
+      const encrypted = hasList && !info && !mine;
+      const tok = objs.map(o => String(o?.url || "").match(/\/s\/([A-Za-z0-9_-]{20,})/)?.[1]).find(Boolean);
+      const named = objs[0]?.name ? objs[0].name + (objs.length > 1 ? ` + ${objs.length - 1} more` : "") : "Share";
+      const direct = tagged || !!mine;
+      const pw = mine?.pw || (tagged ? await openPassword(note, objs.map(o => o.id)) : "");
+      const title = mine?.title || info?.n || (pw ? (await unpackWith(note, pw))?.n : null) || (encrypted ? "(password protected)" : named);
+      let link = mine?.link || "";
+      const locked = encrypted || (tagged && !hasList && !!pw);         // a link that asks for a password
+      if (!link && direct && tok && hc != null) link = locked ? (pw ? `${DL_PAGE()}#3${b64u(await encryptBytes(new TextEncoder().encode(hc + "~" + tok), pw))}` : "")
+                                                         : `${DL_PAGE()}#2${hc}~${tok}`;
+      return { id, direct, title, pw, files: objs.length || mine?.files || 0,
                created: Date.parse(x.createdOn) || mine?.created || 0, expiry: String(x.expiryDate || "").slice(0, 10) || mine?.expiry || "",
-               pass: mine ? mine.pass : !info, link: mine?.link || (info && tok && hc != null ? `${DL_PAGE()}#2${hc}~${tok}` : "") };
+               pass: mine ? mine.pass : locked, mode: x.mode || "",
+               link: direct ? link : (tok ? `${API}/s/${tok}` : "") };
     }));
     storeLinks(local.filter(x => !x.id || dlkRows.some(r => r.id === x.id)));   // links deleted elsewhere drop out
     $("dlkInfo").textContent = "Direct download links in this project. Revoke deletes the share in Trimble Connect and the link stops working at once.";
   } else {
-    dlkRows = local.slice();
+    dlkRows = local.map(x => ({ ...x, direct: true }));
     $("dlkInfo").textContent = "Links made in this browser. Revoke deletes the share in Trimble Connect and the link stops working at once.";
   }
   dlkRows.sort((a, b) => b.created - a.created);
   renderLinks();
 }
+$("dlkAll").onchange = () => renderLinks();
+const MODE_TEXT = { PUBLIC: "any users with the link", REGISTERED_USERS: "signed in users", PROJECT_USERS: "project members" };
 function renderLinks() {
-  $("dlkList").innerHTML = dlkRows.length ? dlkRows.map((r, i) => `<div class="dlk" data-i="${i}">
+  const all = $("dlkAll").checked;
+  const shown = dlkRows.map((r, i) => [r, i]).filter(([r]) => all || r.direct);
+  $("dlkList").innerHTML = shown.length ? shown.map(([r, i]) => `<div class="dlk" data-i="${i}">
       <div class="t"><b title="${esc(r.title)}">${esc(r.title)}</b>
-      <span>${r.files} file${r.files === 1 ? "" : "s"} · ${esc(r.created ? fmtDate(new Date(r.created).toISOString()) : "")} · ${r.expiry ? "valid until " + esc(r.expiry) : "no end date"}${r.pass ? " · password" : ""}</span></div>
+      <span>${r.direct ? "Direct link" : "Share, " + esc(MODE_TEXT[r.mode] || r.mode.toLowerCase())} · ${r.files} file${r.files === 1 ? "" : "s"} · ${esc(r.created ? fmtDate(new Date(r.created).toISOString()) : "")} · ${r.expiry ? "valid until " + esc(r.expiry) : "no end date"}${r.pass ? ` · password: <span class="pw" data-pwv="${i}">••••••</span>` : ""}</span></div>
+      ${r.pass ? `<button type="button" class="btn-secondary" data-pwbtn="${i}" ${r.pw ? "" : 'disabled title="The password is not known here"'}>Show password</button>` : ""}
       <button type="button" class="btn-secondary" data-copy="${i}" ${r.link ? "" : 'disabled title="The link with its password exists only where it was created"'}>Copy link</button>
       <button type="button" class="btn-danger outline" data-revoke="${i}">Revoke</button></div>`).join("")
-    : '<div class="dlk-none">No direct links yet. Make one with Share → Direct download link.</div>';
+    : `<div class="dlk-none">${all ? "No shares in this project." : "No direct links yet. Make one with Share → Direct download link."}</div>`;
 }
 $("dlkList").onclick = async e => {
+  const pb = e.target.closest("[data-pwbtn]");
+  if (pb) {
+    const i = +pb.dataset.pwbtn, v = $("dlkList").querySelector(`[data-pwv="${i}"]`), on = pb.textContent === "Show password";
+    v.textContent = on ? dlkRows[i].pw : "••••••"; pb.textContent = on ? "Hide password" : "Show password";
+    return;
+  }
   const c = e.target.closest("[data-copy]"), r = e.target.closest("[data-revoke]");
   if (c) { const ok = await copyText(dlkRows[+c.dataset.copy].link); c.textContent = ok ? "Copied ✓" : "Copy failed"; setTimeout(() => { c.textContent = "Copy link"; }, 2000); return; }
   if (!r) return;
@@ -2163,6 +2250,11 @@ $("dlkList").onclick = async e => {
   } catch (err) { $("dlkError").textContent = errText(err); r.disabled = false; }
 };
 $("btnLinks").onclick = openLinks;
+$("sdEye").onclick = () => {
+  const show = $("sdPass").type === "password";
+  $("sdPass").type = show ? "text" : "password";
+  $("sdEye").classList.toggle("on", show); $("sdEye").title = show ? "Hide password" : "Show password";
+};
 
 $("shOk").onclick = async () => {
   if (!shareJob || shareJob.busy) return;
@@ -2736,7 +2828,16 @@ async function load() {
 
     loading("Reading project…");
     project = await api.project.getProject();
-    API = (await resolveHost(project.location)) + "/tc/api/2.0";
+    const host = await resolveHost(project.location);
+    API = host + "/tc/api/2.0";
+
+    loading("Checking permissions…");                 // like PointCloud Manager: project administrators only
+    const role = await getRole(host + "/tc/api/2.1");
+    if (role !== "ADMIN") {
+      message("Administrators only", "Better explorer is available to project administrators only.",
+        role ? `Your role in this project: ${role}` : "Your role in this project could not be determined.");
+      return;
+    }
 
     const p = (await tc(`/projects/${enc(project.id)}`)).json || {};
     rootId = p.rootId;
