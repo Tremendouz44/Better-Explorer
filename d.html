@@ -76,7 +76,7 @@
   table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
   th { position: sticky; top: 0; z-index: 2; background: var(--head); height: 46px; padding: 0 12px; text-align: left; font-weight: 600; color: var(--text-3); border-bottom: 1px solid var(--line-2); white-space: nowrap; }
   th.namecol, td.name { padding-left: 0; }
-  td.size, th.size { padding-left: 16px; color: var(--text-3); }
+  td.size, th.size { text-align: right; padding-right: 20px; color: var(--text-3); }
   td { height: var(--rh); padding: 0 12px; box-shadow: inset 0 -1px 0 var(--line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
   tbody tr { cursor: pointer; }
   tbody tr:hover td { background: var(--hover); }
@@ -163,10 +163,10 @@
     <div id="prog" class="prog"></div>
     <div class="table-wrap">
       <table>
-        <colgroup><col class="col-size"><col></colgroup>
+        <colgroup><col><col class="col-size"></colgroup>
         <thead><tr>
-          <th class="size">Size</th>
           <th class="namecol"><div class="cell"><span class="cbhit" id="cbAllHit" title="Select everything"><input type="checkbox" id="cbAll" class="cb" tabindex="-1" aria-label="Select everything"></span>Name</div></th>
+          <th class="size">Size</th>
         </tr></thead>
         <tbody id="rows"></tbody>
       </table>
@@ -312,13 +312,13 @@ function render() {
       const checked = isF ? fs.length > 0 && on === fs.length : sel.has(n.key), ind = isF && on > 0 && on < fs.length;
       const size = isF ? fs.reduce((s, k) => s + (nodes.get(k).size || 0), 0) : n.size;
       rows.push(`<tr data-key="${esc(n.key)}" class="${isF ? "folder " : ""}${checked ? "sel" : ""}">
-        <td class="size">${esc(fmtSize(size))}</td>
         <td class="name"><div class="cell">
           <span class="cbhit" data-cb="${esc(n.key)}"><input type="checkbox" class="cb" tabindex="-1" ${checked ? "checked" : ""} ${ind ? 'data-ind="1"' : ""} aria-label="Select"></span>
           ${colsHtml(depth, lasts, isLast, isF)}
           ${isF ? `<button type="button" class="tog${open.has(n.key) ? " open" : ""}" data-tog="${esc(n.key)}">${ARROW}</button>` : '<span class="tog-gap"></span>'}
           ${isF ? FOLDER_ICON : FILE_ICON}<span class="nm" title="${esc(n.name)}">${esc(n.name)}</span>
-        </div></td></tr>`);
+        </div></td>
+        <td class="size">${esc(fmtSize(size))}</td></tr>`);
       if (isF && open.has(n.key)) walk(n.key, depth + 1, [...lasts, isLast]);
     });
   };
@@ -397,10 +397,9 @@ async function run(fn) {
 const two = x => String(x).padStart(2, "0");
 const safe = t => String(t || "").replace(/[\\/:*?"<>|]+/g, " ").trim();
 function zipName() { const d = new Date(); return `${safe(M.p || M.n) || "Shared files"}_${d.getFullYear()}_${two(d.getMonth() + 1)}_${two(d.getDate())}.zip`; }
-// Downloads go through the browser's normal download, so they show up in its download list and history. The browser
-// opens its "Save as" window itself when "Ask where to save each file" is on in its settings. (A file written through
-// the File System "Save as" picker would not appear among the browser's downloads, so it is switched off.)
-const USE_PICKER = false;
+// The "Save as" window is used where the browser has it (Chrome, Edge). A file saved through it does not appear in the
+// browser's download list; other browsers fall back to their normal download.
+const USE_PICKER = true;
 // the system "Save as" window, starting in the Downloads folder (any language); undefined = not available, null = cancelled
 async function pickSave(name, zip) {
   if (!USE_PICKER || typeof window.showSaveFilePicker !== "function") return undefined;
