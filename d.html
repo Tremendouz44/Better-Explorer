@@ -61,7 +61,7 @@
   .btn-primary:hover { background: var(--blue-hover); border-color: var(--blue-hover); }
   .btn-secondary { border: 1px solid var(--blue); background: var(--white); color: var(--blue); }
   .btn-secondary:hover { background: var(--blue-tint); }
-  .btn-primary:disabled, .btn-secondary:disabled { opacity: .55; cursor: default; }
+  .btn-primary:disabled, .btn-secondary:disabled { background: #e8e9ee; border-color: #d4d6de; color: #9a9ea8; cursor: default; }
   .btn-primary svg.i { width: 18px; height: 18px; }
 
   #scrMain { flex: 1; display: flex; flex-direction: column; min-height: 0; }
@@ -70,12 +70,13 @@
   .bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 46px; margin: 4px 0 8px; padding: 6px 12px; background: var(--blue-tint); border-left: 4px solid var(--blue); }
   .bar .cnt { font-weight: 600; }
   .bar .grow { flex: 1; }
-  .prog { font-size: 13px; color: var(--text-2); }
+  .prog { min-height: 18px; margin: -2px 0 6px; font-size: 13px; color: var(--text-2); }
 
   .table-wrap { flex: 1; min-height: 200px; overflow: auto; background: var(--white); }
   table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
   th { position: sticky; top: 0; z-index: 2; background: var(--head); height: 46px; padding: 0 12px; text-align: left; font-weight: 600; color: var(--text-3); border-bottom: 1px solid var(--line-2); white-space: nowrap; }
-  th:first-child, td.name { padding-left: 0; }
+  th.namecol, td.name { padding-left: 0; }
+  td.size, th.size { padding-left: 16px; color: var(--text-3); }
   td { height: var(--rh); padding: 0 12px; box-shadow: inset 0 -1px 0 var(--line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
   tbody tr { cursor: pointer; }
   tbody tr:hover td { background: var(--hover); }
@@ -114,8 +115,8 @@
   svg.ico.fold { fill: #3d4148; }
   svg.ico.file { fill: #8a8e99; }
   .foot-note { margin-top: 10px; font-size: 12px; color: var(--text-3); }
-  .col-size { width: 110px; } .col-date { width: 170px; }
-  @media (max-width: 640px) { .col-date, td.date, th.date { display: none; } .appbar .by { display: none; } }
+  .col-size { width: 100px; }
+  @media (max-width: 640px) { .appbar .by { display: none; } }
 </style>
 </head>
 <body>
@@ -154,19 +155,18 @@
       <button id="bInvert" class="btn-secondary" type="button" title="Selected files become unselected and the other way round">Invert selection</button>
       <button id="bClear" class="btn-secondary" type="button">Clear selection</button>
       <span class="grow"></span>
-      <span id="prog" class="prog"></span>
-      <button id="bSep" class="btn-secondary hidden" type="button" title="One ZIP with all the files side by side, without their folders">ZIP without folders</button>
+      <button id="bSep" class="btn-secondary" type="button" title="The selected files without their folders: one file as it is, several in one ZIP side by side">Download separately</button>
       <button id="bDl" class="btn-primary" type="button">
-        <svg class="i" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7ZM5 18v2h14v-2H5Z"/></svg><span id="bDlText">Download</span>
+        <svg class="i" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7ZM5 18v2h14v-2H5Z"/></svg><span id="bDlText">Download with folder tree</span>
       </button>
     </div>
+    <div id="prog" class="prog"></div>
     <div class="table-wrap">
       <table>
-        <colgroup><col><col class="col-size"><col class="col-date"></colgroup>
+        <colgroup><col class="col-size"><col></colgroup>
         <thead><tr>
-          <th><div class="cell"><span class="cbhit" id="cbAllHit" title="Select everything"><input type="checkbox" id="cbAll" class="cb" tabindex="-1" aria-label="Select everything"></span>Name</div></th>
-          <th>Size</th>
-          <th class="date">Modified</th>
+          <th class="size">Size</th>
+          <th class="namecol"><div class="cell"><span class="cbhit" id="cbAllHit" title="Select everything"><input type="checkbox" id="cbAll" class="cb" tabindex="-1" aria-label="Select everything"></span>Name</div></th>
         </tr></thead>
         <tbody id="rows"></tbody>
       </table>
@@ -312,14 +312,13 @@ function render() {
       const checked = isF ? fs.length > 0 && on === fs.length : sel.has(n.key), ind = isF && on > 0 && on < fs.length;
       const size = isF ? fs.reduce((s, k) => s + (nodes.get(k).size || 0), 0) : n.size;
       rows.push(`<tr data-key="${esc(n.key)}" class="${isF ? "folder " : ""}${checked ? "sel" : ""}">
+        <td class="size">${esc(fmtSize(size))}</td>
         <td class="name"><div class="cell">
           <span class="cbhit" data-cb="${esc(n.key)}"><input type="checkbox" class="cb" tabindex="-1" ${checked ? "checked" : ""} ${ind ? 'data-ind="1"' : ""} aria-label="Select"></span>
           ${colsHtml(depth, lasts, isLast, isF)}
           ${isF ? `<button type="button" class="tog${open.has(n.key) ? " open" : ""}" data-tog="${esc(n.key)}">${ARROW}</button>` : '<span class="tog-gap"></span>'}
           ${isF ? FOLDER_ICON : FILE_ICON}<span class="nm" title="${esc(n.name)}">${esc(n.name)}</span>
-        </div></td>
-        <td>${esc(fmtSize(size))}</td>
-        <td class="date">${isF ? "" : esc(fmtDate(n.mtime))}</td></tr>`);
+        </div></td></tr>`);
       if (isF && open.has(n.key)) walk(n.key, depth + 1, [...lasts, isLast]);
     });
   };
@@ -329,11 +328,11 @@ function render() {
   const all = files(ROOT), n = sel.size;
   $("cbAll").checked = n > 0 && n === all.length;
   $("cbAll").indeterminate = n > 0 && n < all.length;
-  const target = n ? n : all.length;
-  $("cnt").textContent = n ? `${n} of ${all.length} file${all.length === 1 ? "" : "s"} selected` : `${all.length} file${all.length === 1 ? "" : "s"}`;
-  $("bDlText").textContent = target === 1 ? "Download" : n ? `Download ${n} as ZIP` : "Download all as ZIP";
-  $("bSep").classList.toggle("hidden", target < 2 || !M.k);   // without the folder tree the ZIP has no folders anyway
-  $("bDl").disabled = $("bSep").disabled = $("bInvert").disabled = busy;
+  $("cnt").textContent = n ? `${n} of ${all.length} file${all.length === 1 ? "" : "s"} selected` : `${all.length} file${all.length === 1 ? "" : "s"} · select what to download`;
+  $("bDl").classList.toggle("hidden", !M.k);                 // a link without the folder tree only downloads separately
+  $("bSep").className = M.k ? "btn-secondary" : "btn-primary";
+  $("bDl").disabled = $("bSep").disabled = busy || n === 0;   // only what is selected is downloaded
+  $("bInvert").disabled = busy;
   $("bClear").disabled = busy || n === 0;
 }
 
@@ -376,7 +375,7 @@ $("cbAllHit").onclick = () => {
 
 /* ---------- downloading ---------- */
 let busy = false;
-const chosen = () => (sel.size ? [...sel] : files(ROOT)).map(k => nodes.get(k));
+const chosen = () => [...sel].map(k => nodes.get(k));
 function clickLink(href, name) {
   const a = document.createElement("a");
   a.href = href; if (name) a.download = name; a.rel = "noopener";
@@ -398,9 +397,13 @@ async function run(fn) {
 const two = x => String(x).padStart(2, "0");
 const safe = t => String(t || "").replace(/[\\/:*?"<>|]+/g, " ").trim();
 function zipName() { const d = new Date(); return `${safe(M.p || M.n) || "Shared files"}_${d.getFullYear()}_${two(d.getMonth() + 1)}_${two(d.getDate())}.zip`; }
+// Downloads go through the browser's normal download, so they show up in its download list and history. The browser
+// opens its "Save as" window itself when "Ask where to save each file" is on in its settings. (A file written through
+// the File System "Save as" picker would not appear among the browser's downloads, so it is switched off.)
+const USE_PICKER = false;
 // the system "Save as" window, starting in the Downloads folder (any language); undefined = not available, null = cancelled
 async function pickSave(name, zip) {
-  if (typeof window.showSaveFilePicker !== "function") return undefined;
+  if (!USE_PICKER || typeof window.showSaveFilePicker !== "function") return undefined;
   try {
     return await window.showSaveFilePicker({ suggestedName: name, startIn: "downloads", ...(zip ? { types: [{ description: "ZIP archive", accept: { "application/zip": [".zip"] } }] } : {}) });
   } catch (e) { return e && e.name === "AbortError" ? null : undefined; }
@@ -421,12 +424,14 @@ async function downloadOne(n) {
     $("prog").textContent = `“${n.name}” is downloading.`;
   }
 }
-$("bDl").onclick = () => run(async () => {
+// with folder tree: always a ZIP that keeps the folders (also for one file)
+$("bDl").onclick = () => run(async () => { const list = chosen(); if (list.length) return downloadZip(list, true); });
+// separately: one file as it is, several in one ZIP without folders
+$("bSep").onclick = () => run(async () => {
   const list = chosen();
   if (list.length === 1) return downloadOne(list[0]);
-  return downloadZip(list, !!M.k);
+  if (list.length) return downloadZip(list, false);
 });
-$("bSep").onclick = () => run(() => downloadZip(chosen(), false));
 
 /* ---- ZIP built in the browser (files are stored, not compressed) ---- */
 const CRC_TABLE = (() => {
