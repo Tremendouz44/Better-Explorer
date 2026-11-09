@@ -474,10 +474,15 @@
         <option value="PROJECT_USERS">Specific members of the project</option>
         <option value="REGISTERED_USERS">Signed in users with the link</option>
         <option value="PUBLIC">Any users with the link</option>
+        <option value="DIRECT">Direct download link (temporary)</option>
       </select>
+      <p id="shDirectNote" class="note hidden">A temporary link straight to the file: opening it downloads the file, no sign-in needed. Anyone who has the link can download the file until it expires. Trimble Connect sets how long that is; it is shown after the links are created.</p>
+      <p id="shNoPreview" class="note hidden">Trimble Connect cannot show some of these files (for example ZIP), so a share link opens a page without a preview. “Direct download link” gives a link that downloads the file.</p>
+      <div id="shPeopleBox">
       <label id="shPeopleLabel" for="shInput">People</label>
       <div id="shChips" class="chips"><input id="shInput" type="text" autocomplete="off"></div>
       <div id="shSuggest" class="suggest hidden"></div>
+      </div>
       <div id="shLinkOpts">
         <div class="row2">
           <div><label for="shExpiry">Link expires on</label><input id="shExpiry" type="date"></div>
@@ -485,9 +490,11 @@
         </div>
         <label class="check"><input id="shLatest" type="checkbox" checked> Show latest version</label>
       </div>
+      <div id="shNoteBox">
       <label for="shNote">Note</label>
       <textarea id="shNote" placeholder="Add a message"></textarea>
       <p class="note">Note: Any access restrictions placed on the files are removed when the files are shared.</p>
+      </div>
       <div id="shError" class="form-error"></div>
       <div class="m-foot">
         <button class="btn-secondary" type="button" data-close="dlgShare">Cancel</button>
@@ -598,7 +605,7 @@ import * as TCW from "https://esm.run/trimble-connect-workspace-api";
 /* =====================================================================
    SETTINGS
    ===================================================================== */
-const VERSION = "v2026-11-05.14";
+const VERSION = "v2026-11-09.1";
 const HOSTS = {                                  // project.location -> Core API host
   northamerica:  "https://app.connect.trimble.com",
   europe:        "https://app21.connect.trimble.com",
@@ -1826,7 +1833,9 @@ $("sDelete").onclick = () => openDelete([...sel].map(id => nodes.get(id)).filter
    ===================================================================== */
 let shareJob = null, projUsers = null;
 const EMAIL_RE = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
-const isLinkMode = () => $("shMode").value !== "PROJECT_USERS";
+const isDirect = () => $("shMode").value === "DIRECT";
+const isLinkMode = () => !["PROJECT_USERS", "DIRECT"].includes($("shMode").value);
+const noPreview = n => !EXT_2D.has(extOf(n.name)) && !EXT_3D.has(extOf(n.name));   // Connect has no viewer for it (zip, rar, exe…)
 
 function localDate(offsetDays) {
   const d = new Date(Date.now() + offsetDays * 864e5);
@@ -1870,7 +1879,7 @@ function openShareFiles(items, fromFolder) {
   shareJob = { items, chosen: [], busy: false };
   $("shWhat").textContent = items.length === 1 ? `Sharing “${items[0].name}”.`
     : `Sharing ${items.length} files${fromFolder ? ` from “${fromFolder}”` : ""}.`;
-  $("shMode").value = "PROJECT_USERS";
+  $("shMode").value = items.every(noPreview) ? "DIRECT" : "PROJECT_USERS";      // a share link would open an empty viewer page
   $("shNote").value = ""; $("shInput").value = ""; $("shError").textContent = "";
   $("shExpiry").value = localDate(30); $("shExpiry").min = localDate(0);
   $("shLatest").checked = true;
@@ -1880,9 +1889,14 @@ function openShareFiles(items, fromFolder) {
   openDialog("dlgShare");
 }
 function shareModeChanged() {
-  const link = isLinkMode();
+  const link = isLinkMode(), direct = isDirect();
   shareJob.chosen = [];                              // members and e-mail addresses are not interchangeable
   $("shLinkOpts").classList.toggle("hidden", !link);
+  $("shPeopleBox").classList.toggle("hidden", direct);
+  $("shNoteBox").classList.toggle("hidden", direct);
+  $("shDirectNote").classList.toggle("hidden", !direct);
+  $("shNoPreview").classList.toggle("hidden", direct || !shareJob.items.some(noPreview));
+  $("shOk").textContent = direct ? "Create links" : "Share";
   $("shPeopleLabel").textContent = link ? "People (optional, e-mail addresses to notify)" : "People";
   $("shInput").placeholder = link ? "Please enter valid email address" : "Please enter users";
   $("shInput").value = ""; $("shError").textContent = "";
@@ -1902,7 +1916,7 @@ function renderChips() {
 }
 function renderSuggest() {
   const box = $("shSuggest");
-  if (!shareJob || isLinkMode() || !projUsers || document.activeElement !== $("shInput")) { box.classList.add("hidden"); return; }
+  if (!shareJob || isLinkMode() || isDirect() || !projUsers || document.activeElement !== $("shInput")) { box.classList.add("hidden"); return; }
   const q = $("shInput").value.trim().toLowerCase();
   const taken = new Set(shareJob.chosen.map(c => c.id));
   const hits = projUsers.filter(u => !taken.has(u.id) && (!q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))).slice(0, 40);
@@ -1970,8 +1984,51 @@ function collectLinks(res) {
   for (const m of String(res.text || "").replace(/\\\//g, "/").match(re) || []) out.add(m);
   return [...out];
 }
+// when a signed storage address stops working (Azure "se", AWS/Google "…-Date" + "…-Expires", "Expires"/"exp" as Unix time)
+function urlExpiry(u) {
+  try {
+    const q = new URL(u).searchParams, get = k => { for (const [a, b] of q) if (a.toLowerCase() === k.toLowerCase()) return b; return null; };
+    const se = get("se"); if (se && !isNaN(Date.parse(se))) return new Date(se);
+    for (const pre of ["X-Amz", "X-Goog"]) {
+      const d = get(pre + "-Date"), ex = get(pre + "-Expires");
+      const m = d && d.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/);
+      if (m && ex && !isNaN(+ex)) return new Date(Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +m[6]) + ex * 1000);
+    }
+    const e = get("Expires") || get("exp");
+    if (e && /^\d{9,11}$/.test(e)) return new Date(+e * 1000);
+  } catch { /* not a normal URL */ }
+  return null;
+}
+async function createDirectLinks() {
+  const items = shareJob.items, got = new Map(), failed = [];
+  shareJob.busy = true; $("shOk").disabled = true; $("shError").textContent = "";
+  try {
+    let done = 0;
+    await pool(items, 3, async n => {
+      try {
+        const d = await tc(`/files/fs/${enc(n.id)}/downloadurl`);
+        if (!d.json?.url) throw new Error(`No download link for “${n.name}”.`);
+        got.set(n.id, d.json.url);
+      } catch (e) { failed.push(errText(e)); }
+      setStatus(`Creating links: ${++done} of ${items.length}…`);
+    });
+  } finally { setStatus(""); }
+  if (!got.size) { $("shError").textContent = failed[0] || "No link could be created."; $("shOk").disabled = false; shareJob.busy = false; return; }
+  const shares = items.filter(n => got.has(n.id)).map(n => ({ link: got.get(n.id), name: n.name }));
+  const ends = shares.map(x => urlExpiry(x.link)).filter(Boolean).sort((a, b) => a - b);
+  $("shForm").classList.add("hidden"); $("shDone").classList.remove("hidden");
+  $("shCopy").classList.remove("hidden"); $("shLinks").classList.add("hidden"); $("shList").classList.remove("hidden");
+  $("shList").innerHTML = shares.map(s => `<div class="lk" data-link="${esc(s.link)}" title="Click to copy this link">`
+    + `<span class="lk-name">${esc(s.name)}</span><span class="lk-url">${esc(s.link.length > 110 ? s.link.slice(0, 107) + "…" : s.link)}</span><span class="lk-state">Click to copy</span></div>`).join("");
+  $("shLinks").value = shares.map(s => s.link).join("\n");
+  const valid = ends.length ? `They stop working at ${fmtDate(ends[0].toISOString())}.`
+                            : "Trimble Connect does not say how long they stay valid, so do not rely on them for long.";
+  $("shDoneText").textContent = `${shares.length} direct download link${shares.length === 1 ? "" : "s"}. ${valid} Click a link to copy it.${failed.length ? ` ${failed.length} could not be created: ${failed[0]}` : ""}`;
+  shareJob.busy = false;
+}
 $("shOk").onclick = async () => {
   if (!shareJob || shareJob.busy) return;
+  if (isDirect()) { await createDirectLinks(); return; }
   const link = isLinkMode();
   if (link && $("shInput").value.trim() && !addEmailChip()) return;
   if (!link && !shareJob.chosen.length) { $("shError").textContent = "Choose at least one project member."; return; }
