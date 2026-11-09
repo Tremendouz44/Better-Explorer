@@ -24,7 +24,10 @@
     --line: #e0e1e9; --line-2: #cbcdd6; --guide: #8b90a0;
     --bg: #f1f1f6; --white: #ffffff; --head: #f9f9fb;
     --selected: #dcedf9; --hover: #f5f5f9; --red: #da212c;
+    --rh: 44px; --cb: 32px; --hitw: 44px; --ico: 22px; --tri: 22px;
   }
+  body.compact { --rh: 22px; --cb: 16px; --hitw: 34px; --ico: 16px; --tri: 18px; }
+  body.compact td { font-size: 13px; line-height: 1.2; }
   * { box-sizing: border-box; }
   html, body { margin: 0; min-height: 100%; }
   body { font-family: "Open Sans", Arial, sans-serif; font-size: 14px; color: var(--text); background: var(--bg); display: flex; flex-direction: column; min-height: 100vh; }
@@ -64,7 +67,7 @@
   #scrMain { flex: 1; display: flex; flex-direction: column; min-height: 0; }
   .head h1 { margin: 0; font-size: 20px; font-weight: 400; word-break: break-word; }
   .info { margin-top: 4px; font-size: 13px; color: var(--text-3); }
-  .bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 46px; margin: 12px 0 8px; padding: 6px 12px; background: var(--blue-tint); border-left: 4px solid var(--blue); }
+  .bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 46px; margin: 4px 0 8px; padding: 6px 12px; background: var(--blue-tint); border-left: 4px solid var(--blue); }
   .bar .cnt { font-weight: 600; }
   .bar .grow { flex: 1; }
   .prog { font-size: 13px; color: var(--text-2); }
@@ -73,24 +76,41 @@
   table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
   th { position: sticky; top: 0; z-index: 2; background: var(--head); height: 46px; padding: 0 12px; text-align: left; font-weight: 600; color: var(--text-3); border-bottom: 1px solid var(--line-2); white-space: nowrap; }
   th:first-child, td.name { padding-left: 0; }
-  td { height: 44px; padding: 0 12px; box-shadow: inset 0 -1px 0 var(--line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
+  td { height: var(--rh); padding: 0 12px; box-shadow: inset 0 -1px 0 var(--line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
   tbody tr { cursor: pointer; }
   tbody tr:hover td { background: var(--hover); }
   tbody tr.sel td { background: var(--selected); }
   td.name { color: var(--text); }
-  .cell { display: flex; align-items: center; height: 44px; overflow: hidden; }
+  .cell { display: flex; align-items: center; height: var(--rh); overflow: hidden; }
   .nm { overflow: hidden; text-overflow: ellipsis; }
   tr.folder .nm { font-weight: 600; }
-  .cbhit { width: 44px; align-self: stretch; flex: none; display: grid; place-items: center; cursor: pointer; }
+  .cbhit { width: var(--hitw); align-self: stretch; flex: none; display: grid; place-items: center; cursor: pointer; }
   .cbhit:hover { background: rgba(0,99,163,.10); }
-  input.cb { width: 22px; height: 22px; margin: 0; accent-color: var(--blue); cursor: pointer; pointer-events: none; }
-  .tog, .tog-gap { width: 24px; height: 24px; flex: none; }
+  input.cb { width: var(--cb); height: var(--cb); margin: 0; accent-color: var(--blue); cursor: pointer; pointer-events: none; }
+  /* tree guide lines, the same as in Better explorer */
+  .col { position: relative; width: 32px; align-self: stretch; flex: none; }
+  .col i { position: absolute; background: var(--guide); pointer-events: none; }
+  .col i.gv { left: 11px; top: 0; bottom: 0; width: 2px; }
+  .col i.gt { left: 11px; top: 0; height: calc(50% + 1px); width: 2px; }
+  .col i.gh { left: 11px; top: 50%; height: 2px; width: 27px; }
+  .col i.gh.file { width: 43px; }
+  .toolbar { display: flex; align-items: center; gap: 4px; margin-top: 8px; }
+  .text-btn { height: 34px; padding: 0 12px; border: 0; background: none; border-radius: 4px; color: var(--blue); font-size: 14px; font-weight: 600; cursor: pointer; }
+  .text-btn:hover { background: var(--blue-tint); }
+  .icon-btn { width: 36px; height: 36px; border: 0; background: none; border-radius: 50%; display: grid; place-items: center; color: var(--text); cursor: pointer; flex: none; }
+  .icon-btn:hover { background: var(--line); }
+  .icon-btn.on { background: var(--blue-tint); color: var(--blue); }
+  .pwbox { position: relative; }
+  .card .pwbox input { padding-right: 44px; }
+  .eye { position: absolute; right: 3px; top: 3px; width: 34px; height: 34px; border: 0; border-radius: 50%; background: none; color: var(--text-3); display: grid; place-items: center; cursor: pointer; }
+  .eye:hover { background: var(--line); }
+  .eye.on { color: var(--blue); }
+  .tog, .tog-gap { width: 24px; height: min(24px, var(--rh)); flex: none; }
   .tog { display: grid; place-items: center; border: 0; background: none; padding: 0; cursor: pointer; color: #3d4148; border-radius: 4px; }
   .tog:hover { background: var(--line); }
-  .tog svg { width: 22px; height: 22px; fill: currentColor; transition: transform .12s; }
+  .tog svg { width: var(--tri); height: var(--tri); fill: currentColor; transition: transform .12s; }
   .tog.open svg { transform: rotate(90deg); }
-  .ind { flex: none; }
-  svg.ico { width: 22px; height: 22px; flex: none; margin: 0 6px 0 2px; }
+  svg.ico { width: var(--ico); height: var(--ico); flex: none; margin: 0 6px 0 2px; }
   svg.ico.fold { fill: #3d4148; }
   svg.ico.file { fill: #8a8e99; }
   .foot-note { margin-top: 10px; font-size: 12px; color: var(--text-3); }
@@ -112,7 +132,7 @@
       <h2>Password required</h2>
       <p>These files are protected. Enter the password you received with the link.</p>
       <label for="pw">Password</label>
-      <input id="pw" type="password" autocomplete="current-password">
+      <div class="pwbox"><input id="pw" type="password" autocomplete="current-password"><button id="pwEye" class="eye" type="button" title="Show password"><svg class="i" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5ZM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg></button></div>
       <div id="pwErr" class="err"></div>
       <div class="foot"><button id="pwOk" class="btn-primary" type="submit">Open</button></div>
     </form>
@@ -122,11 +142,20 @@
 
   <section id="scrMain" class="hidden">
     <div class="head"><h1 id="title"></h1><div id="info" class="info"></div></div>
+    <div class="toolbar">
+      <button id="tExpand" class="text-btn" type="button">Expand all</button>
+      <button id="tCollapse" class="text-btn" type="button">Collapse all</button>
+      <button id="tCompact" class="icon-btn" type="button" title="Compact rows">
+        <svg class="i" viewBox="0 0 24 24"><path d="M3 5h18v2H3V5Zm0 4h18v2H3V9Zm0 4h18v2H3v-2Zm0 4h18v2H3v-2Z"/></svg>
+      </button>
+    </div>
     <div class="bar">
       <span id="cnt" class="cnt"></span>
+      <button id="bInvert" class="btn-secondary" type="button" title="Selected files become unselected and the other way round">Invert selection</button>
+      <button id="bClear" class="btn-secondary" type="button">Clear selection</button>
       <span class="grow"></span>
       <span id="prog" class="prog"></span>
-      <button id="bSep" class="btn-secondary hidden" type="button" title="Every file is downloaded on its own (no folders)">Download separately</button>
+      <button id="bSep" class="btn-secondary hidden" type="button" title="One ZIP with all the files side by side, without their folders">ZIP without folders</button>
       <button id="bDl" class="btn-primary" type="button">
         <svg class="i" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7ZM5 18v2h14v-2H5Z"/></svg><span id="bDlText">Download</span>
       </button>
@@ -142,7 +171,7 @@
         <tbody id="rows"></tbody>
       </table>
     </div>
-    <div class="foot-note">Files are downloaded straight from Trimble Connect. Several files can be downloaded as one ZIP that keeps the folders.</div>
+    <div class="foot-note">Files are downloaded straight from Trimble Connect. Several files are downloaded as one ZIP.</div>
   </section>
 </main>
 
@@ -262,27 +291,39 @@ const files = key => { const n = nodes.get(key); return n.type === "FILE" ? [key
 const byName = (a, b) => (a.type !== b.type ? (a.type === "FOLDER" ? -1 : 1) : a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" }));
 function pathOf(key) { const out = []; for (let n = nodes.get(key); n && n.key !== ROOT; n = nodes.get(n.parent)) out.unshift(n.name); return out.join("/"); }
 
+// one column per indent level: the rail of an ancestor that still has siblings below, and this item's own branch
+function colsHtml(d, lasts, isLast, isFolder) {
+  let h = "";
+  for (let j = 0; j < d; j++) {
+    let inner = "";
+    if (j < d - 1) { if (!lasts[j + 1]) inner = '<i class="gv"></i>'; }
+    else inner = `<i class="${isLast ? "gt" : "gv"}"></i><i class="gh${isFolder ? "" : " file"}"></i>`;
+    h += `<span class="col">${inner}</span>`;
+  }
+  return h;
+}
 function render() {
   const rows = [];
-  const walk = (key, depth) => {
-    for (const n of nodes.get(key).kids.map(k => nodes.get(k)).sort(byName)) {
-      const isF = n.type === "FOLDER";
+  const walk = (key, depth, lasts) => {
+    const kids = nodes.get(key).kids.map(k => nodes.get(k)).sort(byName);
+    kids.forEach((n, idx) => {
+      const isF = n.type === "FOLDER", isLast = idx === kids.length - 1;
       const fs = isF ? files(n.key) : null, on = isF ? fs.filter(k => sel.has(k)).length : 0;
       const checked = isF ? fs.length > 0 && on === fs.length : sel.has(n.key), ind = isF && on > 0 && on < fs.length;
       const size = isF ? fs.reduce((s, k) => s + (nodes.get(k).size || 0), 0) : n.size;
       rows.push(`<tr data-key="${esc(n.key)}" class="${isF ? "folder " : ""}${checked ? "sel" : ""}">
         <td class="name"><div class="cell">
           <span class="cbhit" data-cb="${esc(n.key)}"><input type="checkbox" class="cb" tabindex="-1" ${checked ? "checked" : ""} ${ind ? 'data-ind="1"' : ""} aria-label="Select"></span>
-          <span class="ind" style="width:${depth * 24}px"></span>
+          ${colsHtml(depth, lasts, isLast, isF)}
           ${isF ? `<button type="button" class="tog${open.has(n.key) ? " open" : ""}" data-tog="${esc(n.key)}">${ARROW}</button>` : '<span class="tog-gap"></span>'}
           ${isF ? FOLDER_ICON : FILE_ICON}<span class="nm" title="${esc(n.name)}">${esc(n.name)}</span>
         </div></td>
         <td>${esc(fmtSize(size))}</td>
         <td class="date">${isF ? "" : esc(fmtDate(n.mtime))}</td></tr>`);
-      if (isF && open.has(n.key)) walk(n.key, depth + 1);
-    }
+      if (isF && open.has(n.key)) walk(n.key, depth + 1, [...lasts, isLast]);
+    });
   };
-  walk(ROOT, 0);
+  walk(ROOT, 0, []);
   $("rows").innerHTML = rows.join("");
   document.querySelectorAll('#rows input.cb[data-ind="1"]').forEach(el => { el.indeterminate = true; });
   const all = files(ROOT), n = sel.size;
@@ -291,8 +332,9 @@ function render() {
   const target = n ? n : all.length;
   $("cnt").textContent = n ? `${n} of ${all.length} file${all.length === 1 ? "" : "s"} selected` : `${all.length} file${all.length === 1 ? "" : "s"}`;
   $("bDlText").textContent = target === 1 ? "Download" : n ? `Download ${n} as ZIP` : "Download all as ZIP";
-  $("bSep").classList.toggle("hidden", target < 2);
-  $("bDl").disabled = $("bSep").disabled = busy;
+  $("bSep").classList.toggle("hidden", target < 2 || !M.k);   // without the folder tree the ZIP has no folders anyway
+  $("bDl").disabled = $("bSep").disabled = $("bInvert").disabled = busy;
+  $("bClear").disabled = busy || n === 0;
 }
 
 $("rows").onclick = e => {
@@ -308,6 +350,23 @@ $("rows").onclick = e => {
   if (n.type === "FOLDER" || tog) { open.has(n.key) ? open.delete(n.key) : open.add(n.key); render(); return; }
   sel.has(n.key) ? sel.delete(n.key) : sel.add(n.key);       // a click on a file row ticks it
   render();
+};
+$("tExpand").onclick = () => { for (const n of nodes.values()) if (n.type === "FOLDER" && n.key !== ROOT) open.add(n.key); render(); };
+$("tCollapse").onclick = () => { open.clear(); render(); };
+$("bClear").onclick = () => { sel.clear(); render(); };
+$("bInvert").onclick = () => { for (const k of files(ROOT)) sel.has(k) ? sel.delete(k) : sel.add(k); render(); };
+function setCompact(on) {                                   // remembered like in Better explorer
+  document.body.classList.toggle("compact", on);
+  $("tCompact").classList.toggle("on", on);
+  try { localStorage.setItem("be.compact", on ? "1" : "0"); } catch { /* optional */ }
+}
+$("tCompact").onclick = () => setCompact(!document.body.classList.contains("compact"));
+try { if (localStorage.getItem("be.compact") === "1") setCompact(true); } catch { /* optional */ }
+$("pwEye").onclick = () => {
+  const show = $("pw").type === "password";
+  $("pw").type = show ? "text" : "password";
+  $("pwEye").classList.toggle("on", show); $("pwEye").title = show ? "Hide password" : "Show password";
+  $("pw").focus();
 };
 $("cbAllHit").onclick = () => {
   const all = files(ROOT), allOn = all.every(k => sel.has(k));
@@ -336,25 +395,38 @@ async function run(fn) {
   try { await fn(); } catch (e) { $("prog").textContent = errText(e); }
   finally { busy = false; render(); }
 }
+const two = x => String(x).padStart(2, "0");
+const safe = t => String(t || "").replace(/[\\/:*?"<>|]+/g, " ").trim();
+function zipName() { const d = new Date(); return `${safe(M.p || M.n) || "Shared files"}_${d.getFullYear()}_${two(d.getMonth() + 1)}_${two(d.getDate())}.zip`; }
+// the system "Save as" window, starting in the Downloads folder (any language); undefined = not available, null = cancelled
+async function pickSave(name, zip) {
+  if (typeof window.showSaveFilePicker !== "function") return undefined;
+  try {
+    return await window.showSaveFilePicker({ suggestedName: name, startIn: "downloads", ...(zip ? { types: [{ description: "ZIP archive", accept: { "application/zip": [".zip"] } }] } : {}) });
+  } catch (e) { return e && e.name === "AbortError" ? null : undefined; }
+}
 async function downloadOne(n) {
+  const handle = await pickSave(n.name, false);          // first, while the click still counts as the person's action
+  if (handle === null) return;
   $("prog").textContent = `Preparing “${n.name}”…`;
-  clickLink(await downloadUrl(n.id), n.name);
-  $("prog").textContent = `“${n.name}” is downloading.`;
+  const url = await downloadUrl(n.id);
+  if (handle) {
+    const res = await fetch(url);
+    if (!res.ok) throw new HttpError(res.status, "");
+    $("prog").textContent = `Saving “${n.name}”…`;
+    await res.body.pipeTo(await handle.createWritable());   // streamed to the disk, also for big files
+    $("prog").textContent = `“${n.name}” saved.`;
+  } else {
+    clickLink(url, n.name);                               // browsers without the Save window: their normal download (Downloads)
+    $("prog").textContent = `“${n.name}” is downloading.`;
+  }
 }
 $("bDl").onclick = () => run(async () => {
   const list = chosen();
   if (list.length === 1) return downloadOne(list[0]);
-  return downloadZip(list);
+  return downloadZip(list, !!M.k);
 });
-$("bSep").onclick = () => run(async () => {
-  const list = chosen(); let failed = 0, last = "";
-  for (let i = 0; i < list.length; i++) {
-    $("prog").textContent = `Downloading ${i + 1} of ${list.length}…`;
-    try { clickLink(await downloadUrl(list[i].id), list[i].name); } catch (e) { failed++; last = errText(e); }
-    if (i < list.length - 1) await sleep(700);              // browsers dislike a burst of downloads
-  }
-  $("prog").textContent = failed ? `${list.length - failed} downloaded, ${failed} failed. ${last}` : `${list.length} files are downloading.`;
-});
+$("bSep").onclick = () => run(() => downloadZip(chosen(), false));
 
 /* ---- ZIP built in the browser (files are stored, not compressed) ---- */
 const CRC_TABLE = (() => {
@@ -402,12 +474,14 @@ async function pool(items, n, fn) {
   let i = 0;
   await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (i < items.length) await fn(items[i++]); }));
 }
-async function downloadZip(list) {
+async function downloadZip(list, keepFolders) {
   const total = list.reduce((s, n) => s + (n.size || 0), 0);
-  if (total > ZIP_MAX) throw new Error(`Too much for one ZIP in the browser (${fmtSize(total)}). Use “Download separately” or choose fewer files.`);
+  if (total > ZIP_MAX) throw new Error(`Too much for one ZIP in the browser (${fmtSize(total)}). Choose fewer files.`);
+  const name = zipName(), handle = await pickSave(name, true);
+  if (handle === null) return;
   const used = new Set(), entries = [], failed = [];
   const named = list.map(n => {
-    let path = M.k ? pathOf(n.key) : n.name;
+    let path = keepFolders ? pathOf(n.key) : n.name;
     if (used.has(path.toLowerCase())) {                       // same name twice (only possible without folders): name (2).ext
       const dot = n.name.lastIndexOf("."), base = dot > 0 ? n.name.slice(0, dot) : n.name, ext = dot > 0 ? n.name.slice(dot) : "";
       const dir = path.slice(0, path.length - n.name.length);
@@ -428,11 +502,15 @@ async function downloadZip(list) {
   });
   if (!entries.length) throw new Error(failed[0] || "Nothing could be downloaded.");
   entries.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }));
-  const url = URL.createObjectURL(buildZip(entries));
-  const zipName = (String(M.n || "Shared files").replace(/[\\/:*?"<>|]+/g, " ").trim() || "Shared files") + ".zip";
-  clickLink(url, zipName);
-  setTimeout(() => URL.revokeObjectURL(url), 120000);
-  $("prog").textContent = failed.length ? `${zipName}: ${entries.length} files, ${failed.length} failed (${failed[0]})` : `${zipName} is downloading (${entries.length} files).`;
+  const zip = buildZip(entries);
+  let saved = false;
+  if (handle) { try { const w = await handle.createWritable(); await w.write(zip); await w.close(); saved = true; } catch { /* normal download below */ } }
+  if (!saved) {
+    const url = URL.createObjectURL(zip);
+    clickLink(url, name);
+    setTimeout(() => URL.revokeObjectURL(url), 120000);
+  }
+  $("prog").textContent = (failed.length ? `${name}: ${entries.length} files, ${failed.length} failed (${failed[0]})` : `${name}: ${entries.length} files`) + (saved ? " saved." : " downloading.");
 }
 
 // every file of the share: name, size, date and its folders (Trimble returns the folder path of each file)
@@ -491,9 +569,10 @@ async function opened() {
       if (!M.f.length) return message("No files left in this share", "The shared files were deleted or moved out of reach in Trimble Connect.");
     }
   }
-  document.title = M.n || "Shared files";
-  $("appTitle").textContent = M.n || "Shared files";
-  $("title").textContent = M.n || "Shared files";
+  const title = (M.k ? M.n : M.p || M.n) || "Shared files";   // a flat list is named after the project
+  document.title = title;
+  $("appTitle").textContent = title;
+  $("title").textContent = title;
   const total = M.f.reduce((s, f) => s + (f[2] > 0 ? f[2] : 0), 0);
   $("info").textContent = [`${M.f.length} file${M.f.length === 1 ? "" : "s"}`, fmtSize(total), M.e ? `link valid until ${M.e}` : ""].filter(Boolean).join(" · ");
   build(); render(); show("scrMain");

@@ -648,7 +648,7 @@ import * as TCW from "https://esm.run/trimble-connect-workspace-api";
 /* =====================================================================
    SETTINGS
    ===================================================================== */
-const VERSION = "v2026-11-09.8";
+const VERSION = "v2026-11-09.9";
 const HOSTS = {                                  // project.location -> Core API host
   northamerica:  "https://app.connect.trimble.com",
   europe:        "https://app21.connect.trimble.com",
@@ -2140,7 +2140,7 @@ async function createDirectShare() {
     // from Trimble Connect through the share itself, so the link stays short for any number of files
     const hc = hostCode();
     let short = hc != null, why = "";
-    if (short) body.message = NOTE_TAG + await packLink({ v: 2, n: list.n, e: list.e, k: list.k }, pass)
+    if (short) body.message = NOTE_TAG + await packLink({ v: 2, n: list.n, p: project.name || "", e: list.e, k: list.k }, pass)
                               + (pass ? "~" + await sealPassword(pass, job.items.map(n => n.id)) : "");
     let res;
     try { res = await tc("/shares", { method: "POST", body }); }
@@ -2156,7 +2156,7 @@ async function createDirectShare() {
     if (!tok) throw new Error("Trimble Connect created the share but did not return its link.");
     let frag;
     if (short) frag = pass ? "3" + b64u(await encryptBytes(new TextEncoder().encode(hc + "~" + tok), pass)) : "2" + hc + "~" + tok;
-    else frag = await packLink({ v: 1, a: API, t: tok, ...list }, pass);
+    else frag = await packLink({ v: 1, a: API, t: tok, p: project.name || "", ...list }, pass);
     const link = DL_PAGE() + "#" + frag;
     storeLinks([...savedLinks(), { id: String(res.json?.id || ""), title: job.title, files: files.length, created: Date.now(), expiry: exp || "", pass: !!pass, pw: pass || "", link }]);
     $("shForm").classList.add("hidden"); $("shDone").classList.remove("hidden");
