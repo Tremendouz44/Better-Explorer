@@ -204,6 +204,16 @@
   .lk .lk-state { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 12px; color: var(--text-3); white-space: nowrap; }
   .lk.done .lk-state { color: #1a7f37; font-weight: 600; }
   .note { font-size: 13px; color: var(--text-2); }
+  .modal.wide { width: min(720px, 100%); }
+  .dlk-list { margin-top: 10px; max-height: 55vh; overflow: auto; border: 1px solid var(--line); background: var(--white); }
+  .dlk { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .dlk:last-child { border-bottom: 0; }
+  .dlk .t { flex: 1; min-width: 0; }
+  .dlk .t b { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dlk .t span { font-size: 12px; color: var(--text-3); }
+  .dlk button { height: 30px; padding: 0 12px; }
+  .dlk-none { padding: 18px 12px; color: var(--text-3); }
+  #btnLinks { margin-left: 8px; height: 32px; }
   .warn { margin-top: 12px; padding: 10px 12px; max-height: 150px; overflow: auto; background: #fff4e5; border-left: 4px solid #e08a00; color: var(--text); font-size: 13px; line-height: 1.5; word-break: break-word; }
   .destline { display: flex; align-items: center; gap: 10px; }
   .destline span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
@@ -273,6 +283,7 @@
     <div id="crumbs" class="crumbs"></div>
     <div class="tools">
       <span id="status" class="status hidden"><span class="mini-spin"></span><span id="statusText"></span></span>
+      <button id="btnLinks" class="btn-secondary" type="button" title="Direct download links you created: copy them again or revoke them">Direct links</button>
       <div class="addwrap">
         <button id="btnAdd" class="btn-primary" type="button">Add</button>
         <div id="addMenu" class="menu hidden">
@@ -540,6 +551,22 @@
   </div>
 </div>
 
+<!-- Direct links dialog -->
+<div id="dlgLinks" class="overlay hidden">
+  <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="dlkTitle">
+    <div class="m-head">
+      <h2 id="dlkTitle">Direct links</h2>
+      <button class="icon-btn" type="button" data-close="dlgLinks" title="Close">
+        <svg class="i" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+      </button>
+    </div>
+    <p id="dlkInfo" class="note"></p>
+    <div id="dlkList" class="dlk-list"></div>
+    <div id="dlkError" class="form-error"></div>
+    <div class="m-foot"><button class="btn-primary" type="button" data-close="dlgLinks">Close</button></div>
+  </div>
+</div>
+
 <!-- Renew dialog -->
 <div id="dlgRenew" class="overlay hidden">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rnTitle">
@@ -614,7 +641,7 @@ import * as TCW from "https://esm.run/trimble-connect-workspace-api";
 /* =====================================================================
    SETTINGS
    ===================================================================== */
-const VERSION = "v2026-11-09.3";
+const VERSION = "v2026-11-09.4";
 const HOSTS = {                                  // project.location -> Core API host
   northamerica:  "https://app.connect.trimble.com",
   europe:        "https://app21.connect.trimble.com",
@@ -1666,7 +1693,7 @@ $("pDownload").onclick = () => { const n = nodes.get(focusId); if (!n) return; n
 const openDialog = id => $(id).classList.remove("hidden");
 const closeDialog = id => $(id).classList.add("hidden");
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => closeDialog(b.dataset.close));
-const anyDialogOpen = () => ["dlgMove", "dlgDelete", "dlgFolder", "dlgArchive", "dlgRenew", "dlgShare", "dlgDownload"].find(id => !$(id).classList.contains("hidden"));
+const anyDialogOpen = () => ["dlgMove", "dlgDelete", "dlgFolder", "dlgArchive", "dlgRenew", "dlgShare", "dlgDownload", "dlgLinks"].find(id => !$(id).classList.contains("hidden"));
 
 /* =====================================================================
    MOVE
@@ -2005,52 +2032,138 @@ function collectLinks(res) {
    The link carries, after #, the share token and the list of files (with their folder paths), compressed and,
    with a password, encrypted (PBKDF2 + AES-GCM) so that without the password the link reveals nothing. ---- */
 const b64u = bytes => { let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
-async function packLink(obj, password) {
+async function encryptBytes(data, password) {          // -> salt(16) | iv(12) | AES-GCM cipher text
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: 250000, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt"]);
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, data));
+  const out = new Uint8Array(28 + ct.length); out.set(salt, 0); out.set(iv, 16); out.set(ct, 28);
+  return out;
+}
+async function packLink(obj, password) {                // flags byte (1 = compressed, 2 = encrypted) + data, as base64url
   let data = new TextEncoder().encode(JSON.stringify(obj)), flags = 0;
   if (typeof CompressionStream === "function") {
     data = new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new CompressionStream("deflate-raw"))).arrayBuffer());
     flags |= 1;
   }
-  if (password) {
-    const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
-    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"]);
-    const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: 250000, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt"]);
-    const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, data));
-    data = new Uint8Array(28 + ct.length); data.set(salt, 0); data.set(iv, 16); data.set(ct, 28);
-    flags |= 2;
-  }
+  if (password) { data = await encryptBytes(data, password); flags |= 2; }
   const out = new Uint8Array(1 + data.length); out[0] = flags; out.set(data, 1);
   return b64u(out);
 }
+const unb64u = t => { t = t.replace(/-/g, "+").replace(/_/g, "/"); const bin = atob(t + "=".repeat((4 - t.length % 4) % 4)); return Uint8Array.from(bin, c => c.charCodeAt(0)); };
+async function peekNote(note) {                        // the file list in a share's note, if it is not encrypted
+  try {
+    const raw = unb64u(String(note).slice(4));
+    if (raw[0] & 2) return null;
+    let data = raw.subarray(1);
+    if (raw[0] & 1) data = new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer());
+    return JSON.parse(new TextDecoder().decode(data));
+  } catch { return null; }
+}
+const NOTE_TAG = "BE1.";                                // marks the note of a share made for a Direct link
+const hostCode = () => API.match(/^https:\/\/app(\d*)\.connect\.trimble\.com\/tc\/api\/2\.0$/)?.[1];
+const LINKS_KEY = () => "be.dlinks." + project.id;
+function savedLinks() { try { return JSON.parse(localStorage.getItem(LINKS_KEY()) || "[]"); } catch { return []; } }
+function storeLinks(list) { try { localStorage.setItem(LINKS_KEY(), JSON.stringify(list.slice(-300))); } catch { /* optional */ } }
 const DL_PAGE = () => new URL("d.html", location.href).href.split(/[?#]/)[0];
 async function createDirectShare() {
   const job = shareJob, pass = $("sdPass").value, tree = $("sdTree").checked, exp = $("sdExpiry").value;
   if (pass && pass.length < 6) { $("shError").textContent = "Use a password of at least 6 characters (10 or more is safer)."; return; }
   job.busy = true; $("shOk").disabled = true; $("shError").textContent = "";
   try {
+    const files = job.items.map(n => [n.id, tree ? job.paths.get(n.id) || n.name : n.name, n.size ?? -1, n.modifiedOn ? Math.round(Date.parse(n.modifiedOn) / 1000) || 0 : 0]);
+    const list = { n: job.title, e: exp || "", k: tree ? 1 : 0, f: files };
     const body = { projectId: project.id, mode: "PUBLIC", message: "", notify: [], permission: "DOWNLOAD",
                    objects: job.items.map(n => ({ id: n.id, type: "FILE", useLatestVersion: true })) };
     if (exp) body.expiryDate = expiryStamp(exp);
-    const res = await tc("/shares", { method: "POST", body });
+    // short link: the file list goes into the share's note, the link only carries the token
+    const hc = hostCode();
+    let short = hc != null, why = "";
+    if (short) body.message = NOTE_TAG + await packLink(list, pass);
+    let res;
+    try { res = await tc("/shares", { method: "POST", body }); }
+    catch (e) {
+      if (!short || !(e instanceof ApiError) || e.status >= 500) throw e;
+      short = false; why = errText(e); body.message = "";            // e.g. the note is too long: the list goes into the link
+      res = await tc("/shares", { method: "POST", body });
+    }
     const objs = listOf(res.json?.objects ?? res.json);
     let tok = objs.map(o => String(o?.url || "").match(/\/s\/([A-Za-z0-9_-]{20,})/)?.[1]).find(Boolean);
     if (!tok) tok = collectShares(res, job.items).map(x => x.link.match(/\/s\/([A-Za-z0-9_-]{20,})/)?.[1]).find(Boolean);
     if (!tok) throw new Error("Trimble Connect created the share but did not return its link.");
-    const files = job.items.map(n => [n.id, tree ? job.paths.get(n.id) || n.name : n.name, n.size ?? -1, n.modifiedOn ? Math.round(Date.parse(n.modifiedOn) / 1000) || 0 : 0]);
-    const link = DL_PAGE() + "#" + await packLink({ v: 1, a: API, t: tok, n: job.title, e: exp || "", k: tree ? 1 : 0, f: files }, pass);
+    let frag;
+    if (short) frag = pass ? "3" + b64u(await encryptBytes(new TextEncoder().encode(hc + "~" + tok), pass)) : "2" + hc + "~" + tok;
+    else frag = await packLink({ v: 1, a: API, t: tok, ...list }, pass);
+    const link = DL_PAGE() + "#" + frag;
+    storeLinks([...savedLinks(), { id: String(res.json?.id || ""), title: job.title, files: files.length, created: Date.now(), expiry: exp || "", pass: !!pass, link }]);
     $("shForm").classList.add("hidden"); $("shDone").classList.remove("hidden");
     $("shCopy").classList.add("hidden"); $("shLinks").classList.add("hidden"); $("shList").classList.remove("hidden");
     $("shLinks").value = link;
     $("shList").innerHTML = `<div class="lk" data-link="${esc(link)}" title="Click to copy this link"><span class="lk-name">${esc(job.title)}</span>`
-      + `<span class="lk-url">${esc(link.length > 110 ? link.slice(0, 107) + "…" : link)}</span><span class="lk-state">Click to copy</span></div>`;
+      + `<span class="lk-url">${esc(link.length > 160 ? link.slice(0, 157) + "…" : link)}</span><span class="lk-state">Click to copy</span></div>`;
     const n = job.items.length;
     $("shDoneText").textContent = `Download page with ${n} file${n === 1 ? "" : "s"}${tree ? " (folder tree)" : ""}. `
-      + (exp ? `Valid until ${exp}. ` : "No end date. ") + (pass ? "Password protected. " : "") + "Click the link to copy it.";
+      + (exp ? `Valid until ${exp}. ` : "No end date. ") + (pass ? "Password protected. " : "") + "Click the link to copy it. Revoke it any time under Direct links."
+      + (why ? ` (The list of files is in the link, so it is long: ${why})` : "");
   } catch (e) {
     $("shError").textContent = errText(e);
     $("shOk").disabled = false;
   } finally { job.busy = false; }
 }
+
+/* ---- Direct links: the links made here, to copy again or revoke (= delete the share in Trimble Connect) ---- */
+let dlkRows = [];
+async function openLinks() {
+  openDialog("dlgLinks");
+  $("dlkError").textContent = ""; $("dlkInfo").textContent = "";
+  $("dlkList").innerHTML = '<div class="dlk-none">Loading…</div>';
+  const local = savedLinks(), byId = new Map(local.filter(x => x.id).map(x => [x.id, x]));
+  let server = null;
+  try { server = listOf((await tc(`/shares?projectId=${enc(project.id)}`)).json).filter(x => String(x?.message || "").startsWith(NOTE_TAG)); }
+  catch { /* Trimble Connect may not list shares: only the links made in this browser are shown */ }
+  if (server) {
+    const hc = hostCode();
+    dlkRows = await Promise.all(server.map(async x => {
+      const id = String(x.id), mine = byId.get(id), info = mine ? null : await peekNote(x.message);
+      const tok = listOf(x.objects).map(o => String(o?.url || "").match(/\/s\/([A-Za-z0-9_-]{20,})/)?.[1]).find(Boolean);
+      return { id, title: mine?.title || info?.n || "(password protected)", files: listOf(x.objects).length || mine?.files || 0,
+               created: Date.parse(x.createdOn) || mine?.created || 0, expiry: String(x.expiryDate || "").slice(0, 10) || mine?.expiry || "",
+               pass: mine ? mine.pass : !info, link: mine?.link || (info && tok && hc != null ? `${DL_PAGE()}#2${hc}~${tok}` : "") };
+    }));
+    storeLinks(local.filter(x => !x.id || dlkRows.some(r => r.id === x.id)));   // links deleted elsewhere drop out
+    $("dlkInfo").textContent = "Direct download links in this project. Revoke deletes the share in Trimble Connect and the link stops working at once.";
+  } else {
+    dlkRows = local.slice();
+    $("dlkInfo").textContent = "Links made in this browser. Revoke deletes the share in Trimble Connect and the link stops working at once.";
+  }
+  dlkRows.sort((a, b) => b.created - a.created);
+  renderLinks();
+}
+function renderLinks() {
+  $("dlkList").innerHTML = dlkRows.length ? dlkRows.map((r, i) => `<div class="dlk" data-i="${i}">
+      <div class="t"><b title="${esc(r.title)}">${esc(r.title)}</b>
+      <span>${r.files} file${r.files === 1 ? "" : "s"} · ${esc(r.created ? fmtDate(new Date(r.created).toISOString()) : "")} · ${r.expiry ? "valid until " + esc(r.expiry) : "no end date"}${r.pass ? " · password" : ""}</span></div>
+      <button type="button" class="btn-secondary" data-copy="${i}" ${r.link ? "" : 'disabled title="The link with its password exists only where it was created"'}>Copy link</button>
+      <button type="button" class="btn-danger outline" data-revoke="${i}">Revoke</button></div>`).join("")
+    : '<div class="dlk-none">No direct links yet. Make one with Share → Direct download link.</div>';
+}
+$("dlkList").onclick = async e => {
+  const c = e.target.closest("[data-copy]"), r = e.target.closest("[data-revoke]");
+  if (c) { const ok = await copyText(dlkRows[+c.dataset.copy].link); c.textContent = ok ? "Copied ✓" : "Copy failed"; setTimeout(() => { c.textContent = "Copy link"; }, 2000); return; }
+  if (!r) return;
+  if (r.dataset.armed !== "1") { r.dataset.armed = "1"; r.textContent = "Click to confirm"; setTimeout(() => { if (r.isConnected) { r.dataset.armed = ""; r.textContent = "Revoke"; } }, 4000); return; }
+  const row = dlkRows[+r.dataset.revoke];
+  r.disabled = true; $("dlkError").textContent = "";
+  try {
+    if (!row.id) throw new Error("This link has no share id, it cannot be revoked from here.");
+    await tc(`/shares/${enc(row.id)}`, { method: "DELETE" });
+    storeLinks(savedLinks().filter(x => x.id !== row.id));
+    dlkRows = dlkRows.filter(x => x !== row); renderLinks();
+    toast(`“${row.title}”: the link no longer works.`);
+  } catch (err) { $("dlkError").textContent = errText(err); r.disabled = false; }
+};
+$("btnLinks").onclick = openLinks;
+
 $("shOk").onclick = async () => {
   if (!shareJob || shareJob.busy) return;
   if (isDirect()) { await createDirectShare(); return; }

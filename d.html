@@ -435,12 +435,25 @@ async function downloadZip(list) {
   $("prog").textContent = failed.length ? `${zipName}: ${entries.length} files, ${failed.length} failed (${failed[0]})` : `${zipName} is downloading (${entries.length} files).`;
 }
 
-/* ---------- start ---------- */
+/* ---------- start ----------
+   Link formats after #:  "2<host>~<token>"            short link, the file list is in the share's note
+                          "3<base64url>"                 the same, "<host>~<token>" encrypted with the password
+                          base64url starting with "A"    older long link: flags byte + the whole list            */
+let password = "";
+const NOTE_TAG = "BE1.";
 async function opened() {
   try { await loadShare(); }
   catch (e) {
     if (e instanceof HttpError && e.status >= 400 && e.status < 500) return message("This link no longer works", "The share was removed in Trimble Connect or it has expired. Ask the sender for a new link.");
     return message("Trimble Connect could not be reached", errText(e) + " Check the connection and reload the page.");
+  }
+  if (!M.f) {                                                // short link: the list of files is in the share's note
+    const note = String(share.message || "");
+    try {
+      if (!note.startsWith(NOTE_TAG)) throw new Error("no list");
+      Object.assign(M, await unpack(unb64u(note.slice(NOTE_TAG.length)), password));
+      if (!Array.isArray(M.f)) throw new Error("no list");
+    } catch { return message("The list of files is missing", "The note of this share was changed in Trimble Connect, so the files cannot be listed. Ask the sender for a new link."); }
   }
   document.title = M.n || "Shared files";
   $("appTitle").textContent = M.n || "Shared files";
@@ -449,12 +462,32 @@ async function opened() {
   $("info").textContent = [`${M.f.length} file${M.f.length === 1 ? "" : "s"}`, fmtSize(total), M.e ? `link valid until ${M.e}` : ""].filter(Boolean).join(" · ");
   build(); render(); show("scrMain");
 }
+const hostApi = code => `https://app${code}.connect.trimble.com/tc/api/2.0`;
+function shortLink(text) {                                   // "<host>~<token>"
+  const m = String(text).match(/^(\d*)~([A-Za-z0-9_-]{20,})$/);
+  if (!m) throw new Error("bad link");
+  return { a: hostApi(m[1]), t: m[2] };
+}
 async function start() {
   const frag = location.hash.slice(1);
   if (!frag) return message("No files in this link", "The link is incomplete. Copy the whole link, including everything after the # sign.");
-  let raw;
-  try { raw = unb64u(frag); } catch { return message("This link is damaged", "Copy the whole link again, including everything after the # sign."); }
   if (typeof DecompressionStream !== "function" || !crypto?.subtle) return message("This browser is too old", "Open the link in a current Chrome, Edge, Firefox or Safari.");
+  const damaged = () => message("This link is damaged", "Copy the whole link again, including everything after the # sign.");
+  if (frag[0] === "2") { try { M = shortLink(frag.slice(1)); } catch { return damaged(); } return opened(); }
+  if (frag[0] === "3") {
+    let sealed; try { sealed = unb64u(frag.slice(1)); } catch { return damaged(); }
+    show("scrPass"); $("pw").focus();
+    $("pwForm").onsubmit = async e => {
+      e.preventDefault();
+      $("pwOk").disabled = true; $("pwErr").textContent = "";
+      try { M = shortLink(new TextDecoder().decode(await decrypt(sealed, $("pw").value))); password = $("pw").value; }
+      catch { $("pwErr").textContent = "Wrong password."; $("pwOk").disabled = false; $("pw").select(); return; }
+      show("scrLoad"); opened();
+    };
+    return;
+  }
+  let raw;
+  try { raw = unb64u(frag); } catch { return damaged(); }
   if (raw[0] & 2) {
     show("scrPass"); $("pw").focus();
     $("pwForm").onsubmit = async e => {
@@ -466,7 +499,7 @@ async function start() {
     };
     return;
   }
-  try { M = await unpack(raw, ""); } catch { return message("This link is damaged", "Copy the whole link again, including everything after the # sign."); }
+  try { M = await unpack(raw, ""); } catch { return damaged(); }
   opened();
 }
 window.addEventListener("hashchange", () => location.reload());
