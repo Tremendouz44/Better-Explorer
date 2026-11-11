@@ -38,7 +38,12 @@
   .appbar { height: 52px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 16px; background: var(--blue-dark); color: #fff; }
   .appbar svg { width: 24px; height: 24px; fill: #fff; }
   .appbar .t { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .appbar .by { margin-left: auto; font-size: 12px; opacity: .8; white-space: nowrap; }
+  .appbar .by { font-size: 13px; font-weight: 600; opacity: .9; white-space: nowrap; }
+  .lang { margin-left: auto; display: flex; align-items: center; gap: 2px; font-size: 13px; }
+  .lang button { border: 0; background: none; color: rgba(255,255,255,.7); font: inherit; font-weight: 600; padding: 4px 6px; border-radius: 4px; cursor: pointer; }
+  .lang button:hover { background: rgba(255,255,255,.12); color: #fff; }
+  .lang button.on { color: #fff; text-decoration: underline; text-underline-offset: 4px; }
+  .lang span { opacity: .5; }
 
   main { flex: 1; display: flex; flex-direction: column; min-height: 0; padding: 16px; }
   .screen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; color: var(--text-2); padding: 24px 0; }
@@ -117,47 +122,48 @@
   .foot-note { margin-top: 10px; font-size: 12px; color: var(--text-3); }
   .col-size { width: 100px; }
   @media (max-width: 640px) { .appbar .by { display: none; } }
+  .bar .cnt { margin-right: 6px; }
 </style>
 </head>
 <body>
 <header class="appbar">
   <svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2Z"/></svg>
-  <span class="t" id="appTitle">Shared files</span>
-  <span class="by">Better explorer by BJM</span>
+  <span class="t" id="appTitle"></span>
+  <div class="lang"><button type="button" data-lang="sk">SK</button><span>|</span><button type="button" data-lang="en">ENG</button></div>
+  <span class="by">File Vault by BJM</span>
 </header>
 <main>
-  <section id="scrLoad" class="screen"><div class="spinner"></div><p id="loadText">Opening the shared files…</p></section>
+  <section id="scrLoad" class="screen"><div class="spinner"></div><p id="loadText"></p></section>
 
   <section id="scrPass" class="screen hidden">
     <form class="card" id="pwForm" autocomplete="off">
-      <h2>Password required</h2>
-      <p>These files are protected. Enter the password you received with the link.</p>
-      <label for="pw">Password</label>
-      <div class="pwbox"><input id="pw" type="password" autocomplete="current-password"><button id="pwEye" class="eye" type="button" title="Show password"><svg class="i" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5ZM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg></button></div>
+      <h2 data-t="pwTitle"></h2>
+      <p data-t="pwText"></p>
+      <label for="pw" data-t="pwLabel"></label>
+      <div class="pwbox"><input id="pw" type="password" autocomplete="current-password"><button id="pwEye" class="eye" type="button" data-tt="showPw"><svg class="i" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5ZM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg></button></div>
       <div id="pwErr" class="err"></div>
-      <div class="foot"><button id="pwOk" class="btn-primary" type="submit">Open</button></div>
+      <div class="foot"><button id="pwOk" class="btn-primary" type="submit" data-t="open"></button></div>
     </form>
   </section>
 
   <section id="scrMsg" class="screen hidden"><h2 id="msgT"></h2><p id="msgP"></p></section>
 
   <section id="scrMain" class="hidden">
-    <div class="head"><h1 id="title"></h1><div id="info" class="info"></div></div>
     <div class="toolbar">
-      <button id="tExpand" class="text-btn" type="button">Expand all</button>
-      <button id="tCollapse" class="text-btn" type="button">Collapse all</button>
-      <button id="tCompact" class="icon-btn" type="button" title="Compact rows">
+      <button id="tExpand" class="text-btn" type="button" data-t="expand"></button>
+      <button id="tCollapse" class="text-btn" type="button" data-t="collapse"></button>
+      <button id="tCompact" class="icon-btn" type="button" data-tt="compact">
         <svg class="i" viewBox="0 0 24 24"><path d="M3 5h18v2H3V5Zm0 4h18v2H3V9Zm0 4h18v2H3v-2Zm0 4h18v2H3v-2Z"/></svg>
       </button>
     </div>
     <div class="bar">
       <span id="cnt" class="cnt"></span>
-      <button id="bInvert" class="btn-secondary" type="button" title="Selected files become unselected and the other way round">Invert selection</button>
-      <button id="bClear" class="btn-secondary" type="button">Clear selection</button>
+      <button id="bInvert" class="btn-secondary" type="button" data-t="invert" data-tt="invertTip"></button>
+      <button id="bClear" class="btn-secondary" type="button" data-t="clear"></button>
       <span class="grow"></span>
-      <button id="bSep" class="btn-secondary" type="button" title="The selected files without their folders: one file as it is, several in one ZIP side by side">Download separately</button>
+      <button id="bSep" class="btn-secondary" type="button" data-t="dlSel" data-tt="dlSelTip"></button>
       <button id="bDl" class="btn-primary" type="button">
-        <svg class="i" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7ZM5 18v2h14v-2H5Z"/></svg><span id="bDlText">Download with folder tree</span>
+        <svg class="i" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7ZM5 18v2h14v-2H5Z"/></svg><span id="bDlText" data-t="dlTree"></span>
       </button>
     </div>
     <div id="prog" class="prog"></div>
@@ -165,13 +171,13 @@
       <table>
         <colgroup><col><col class="col-size"></colgroup>
         <thead><tr>
-          <th class="namecol"><div class="cell"><span class="cbhit" id="cbAllHit" title="Select everything"><input type="checkbox" id="cbAll" class="cb" tabindex="-1" aria-label="Select everything"></span>Name</div></th>
-          <th class="size">Size</th>
+          <th class="namecol"><div class="cell"><span class="cbhit" id="cbAllHit" data-tt="selAll"><input type="checkbox" id="cbAll" class="cb" tabindex="-1" aria-label="Select everything"></span><span data-t="name"></span></div></th>
+          <th class="size" data-t="size"></th>
         </tr></thead>
         <tbody id="rows"></tbody>
       </table>
     </div>
-    <div class="foot-note">Files are downloaded straight from Trimble Connect. Several files are downloaded as one ZIP.</div>
+    <div class="foot-note"><span data-t="foot"></span> <span id="validity"></span></div>
   </section>
 </main>
 
@@ -197,8 +203,85 @@ function fmtDate(sec) {
   return d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) + " " + d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* ---------- languages: SK | ENG ---------- */
+const TEXT = {
+  en: {
+    shared: "Shared files", opening: "Opening the shared files…", reading: "Reading files: {a} of {b}…",
+    pwTitle: "Password required", pwText: "These files are protected. Enter the password you received with the link.",
+    pwLabel: "Password", open: "Open", wrongPw: "Wrong password.", showPw: "Show password", hidePw: "Hide password",
+    expand: "Expand all", collapse: "Collapse all", compact: "Compact rows",
+    invert: "Invert selection", invertTip: "Selected files become unselected and the other way round", clear: "Clear selection",
+    selectFiles: "Select files", selected: "{a} of {b} files selected · {size}",
+    dlSel: "Download selected", dlSelTip: "One file as it is, several files in one ZIP without folders",
+    dlTree: "Download and keep folder tree", selAll: "Select everything", name: "Name", size: "Size",
+    foot: "Files are downloaded straight from Trimble Connect.", validUntil: "The link is valid until {d}.",
+    preparing: "Preparing “{n}”…", saving: "Saving “{n}”…", saved: "“{n}” saved.", downloading: "“{n}” is downloading.",
+    zipProgress: "Preparing ZIP: {a} of {b} files ({size})", zipDone: "{n}: {a} files {how}.", zipFailed: "{n}: {a} files, {f} failed ({e}).",
+    savedWord: "saved", downloadingWord: "downloading", tooMuch: "Too much for one ZIP in the browser ({size}). Choose fewer files.",
+    nothing: "Nothing could be downloaded.", notInShare: "This file is no longer part of the share.",
+    refused: "Trimble Connect refused the download (the share may have been removed or has expired).", answered: "Trimble Connect answered {s}.",
+    goneT: "This link no longer works", goneP: "The share was removed in Trimble Connect or it has expired. Ask the sender for a new link.",
+    unreachT: "Trimble Connect could not be reached", unreachP: "{e} Check the connection and reload the page.",
+    noteT: "This link cannot be opened", noteP: "The note of this share was changed in Trimble Connect. Ask the sender for a new link.",
+    readT: "The files could not be read", readP: "{e} Reload the page to try again.",
+    emptyT: "No files left in this share", emptyP: "The shared files were deleted or moved out of reach in Trimble Connect.",
+    noLinkT: "No files in this link", noLinkP: "The link is incomplete. Copy the whole link, including everything after the # sign.",
+    oldT: "This browser is too old", oldP: "Open the link in a current Chrome, Edge, Firefox or Safari.",
+    damagedT: "This link is damaged", damagedP: "Copy the whole link again, including everything after the # sign.",
+  },
+  sk: {
+    shared: "Zdieľané súbory", opening: "Otváram zdieľané súbory…", reading: "Načítavam súbory: {a} z {b}…",
+    pwTitle: "Vyžaduje sa heslo", pwText: "Tieto súbory sú chránené. Zadajte heslo, ktoré ste dostali k linku.",
+    pwLabel: "Heslo", open: "Otvoriť", wrongPw: "Nesprávne heslo.", showPw: "Zobraziť heslo", hidePw: "Skryť heslo",
+    expand: "Rozbaliť všetko", collapse: "Zbaliť všetko", compact: "Kompaktné riadky",
+    invert: "Invertovať výber", invertTip: "Označené súbory sa odznačia a neoznačené označia", clear: "Zrušiť výber",
+    selectFiles: "Vyberte súbory", selected: "Vybrané {a} z {b} súborov · {size}",
+    dlSel: "Stiahnuť vybrané", dlSelTip: "Jeden súbor tak, ako je, viac súborov v jednom ZIPe bez priečinkov",
+    dlTree: "Stiahnuť so stromom priečinkov", selAll: "Označiť všetko", name: "Názov", size: "Veľkosť",
+    foot: "Súbory sa sťahujú priamo z Trimble Connect.", validUntil: "Link platí do {d}.",
+    preparing: "Pripravujem „{n}“…", saving: "Ukladám „{n}“…", saved: "„{n}“ je uložený.", downloading: "„{n}“ sa sťahuje.",
+    zipProgress: "Pripravujem ZIP: {a} z {b} súborov ({size})", zipDone: "{n}: {a} súborov {how}.", zipFailed: "{n}: {a} súborov, {f} sa nepodarilo ({e}).",
+    savedWord: "uložených", downloadingWord: "sa sťahuje", tooMuch: "Na jeden ZIP v prehliadači je to priveľa ({size}). Vyberte menej súborov.",
+    nothing: "Nepodarilo sa stiahnuť nič.", notInShare: "Tento súbor už nie je súčasťou zdieľania.",
+    refused: "Trimble Connect stiahnutie odmietol (zdieľanie mohlo byť zrušené alebo vypršalo).", answered: "Trimble Connect odpovedal {s}.",
+    goneT: "Tento link už nefunguje", goneP: "Zdieľanie bolo v Trimble Connect zrušené alebo vypršalo. Požiadajte odosielateľa o nový link.",
+    unreachT: "Trimble Connect je nedostupný", unreachP: "{e} Skontrolujte pripojenie a obnovte stránku.",
+    noteT: "Tento link sa nedá otvoriť", noteP: "Poznámka tohto zdieľania bola v Trimble Connect zmenená. Požiadajte odosielateľa o nový link.",
+    readT: "Súbory sa nepodarilo načítať", readP: "{e} Obnovte stránku a skúste to znova.",
+    emptyT: "V zdieľaní už nie sú žiadne súbory", emptyP: "Zdieľané súbory boli v Trimble Connect zmazané alebo presunuté.",
+    noLinkT: "Link neobsahuje súbory", noLinkP: "Link je neúplný. Skopírujte celý link vrátane všetkého za znakom #.",
+    oldT: "Tento prehliadač je zastaraný", oldP: "Otvorte link v aktuálnom Chrome, Edge, Firefoxe alebo Safari.",
+    damagedT: "Link je poškodený", damagedP: "Skopírujte celý link znova vrátane všetkého za znakom #.",
+  },
+};
+let LANG = (() => {
+  try { const l = localStorage.getItem("fv.lang"); if (l === "sk" || l === "en") return l; } catch { /* optional */ }
+  return /^(sk|cs)\b/i.test(navigator.language || "") ? "sk" : "en";
+})();
+const t = (k, v = {}) => String(TEXT[LANG][k] ?? TEXT.en[k] ?? k).replace(/\{(\w+)\}/g, (_, x) => v[x] ?? "");
+let lastMsg = null, title = "";
+function applyLang() {
+  document.documentElement.lang = LANG;
+  document.querySelectorAll("[data-t]").forEach(el => { el.textContent = t(el.dataset.t); });
+  document.querySelectorAll("[data-tt]").forEach(el => { el.title = t(el.dataset.tt); });
+  document.querySelectorAll(".lang button").forEach(b => b.classList.toggle("on", b.dataset.lang === LANG));
+  const ttl = title || t("shared");
+  document.title = ttl; $("appTitle").textContent = ttl;
+  if ($("loadText").dataset.k) $("loadText").textContent = t($("loadText").dataset.k, JSON.parse($("loadText").dataset.v || "{}"));
+  if (lastMsg && !$("scrMsg").classList.contains("hidden")) message(...lastMsg);
+  $("validity").textContent = M && M.e ? t("validUntil", { d: M.e }) : "";
+  $("prog").textContent = "";
+  if (nodes.size) render();
+}
+document.querySelectorAll(".lang button").forEach(b => b.onclick = () => {
+  LANG = b.dataset.lang;
+  try { localStorage.setItem("fv.lang", LANG); } catch { /* optional */ }
+  applyLang();
+});
+function loadText(k, v = {}) { const el = $("loadText"); el.dataset.k = k; el.dataset.v = JSON.stringify(v); el.textContent = t(k, v); }
 function show(id) { for (const s of ["scrLoad", "scrPass", "scrMsg", "scrMain"]) $(s).classList.toggle("hidden", s !== id); }
-function message(t, p) { $("msgT").textContent = t; $("msgP").textContent = p; show("scrMsg"); }
+function message(k, v = {}) { lastMsg = [k, v]; $("msgT").textContent = t(k + "T", v); $("msgP").textContent = t(k + "P", v); show("scrMsg"); }
 
 /* ---------- reading the link ---------- */
 function unb64u(s) {
@@ -254,12 +337,12 @@ async function downloadUrl(id) {
   await loadShare();                                         // the access token may have expired
   try { return (await getJson(path, share.accessToken, M.t)).url; }
   catch (e) { if (!(e instanceof HttpError) || ![401, 403].includes(e.status)) throw e; }
-  const t = objToken.get(id);                                // last try: the file's own token
-  if (!t) throw new Error("This file is no longer part of the share.");
-  const r = await fetch(`${M.a}/shares/token/${encodeURIComponent(t)}`);
+  const tk = objToken.get(id);                               // last try: the file's own token
+  if (!tk) throw new Error(t("notInShare"));
+  const r = await fetch(`${M.a}/shares/token/${encodeURIComponent(tk)}`);
   if (!r.ok) throw new HttpError(r.status, await r.text());
   const own = await r.json();
-  return (await getJson(path, own.accessToken, t)).url;
+  return (await getJson(path, own.accessToken, tk)).url;
 }
 
 /* ---------- tree ---------- */
@@ -328,7 +411,8 @@ function render() {
   const all = files(ROOT), n = sel.size;
   $("cbAll").checked = n > 0 && n === all.length;
   $("cbAll").indeterminate = n > 0 && n < all.length;
-  $("cnt").textContent = n ? `${n} of ${all.length} file${all.length === 1 ? "" : "s"} selected` : `${all.length} file${all.length === 1 ? "" : "s"} · select what to download`;
+  const selSize = [...sel].reduce((s, k) => s + (nodes.get(k).size || 0), 0);
+  $("cnt").textContent = n ? t("selected", { a: n, b: all.length, size: fmtSize(selSize) || "0 B" }) : t("selectFiles");
   $("bDl").classList.toggle("hidden", !M.k);                 // a link without the folder tree only downloads separately
   $("bSep").className = M.k ? "btn-secondary" : "btn-primary";
   $("bDl").disabled = $("bSep").disabled = busy || n === 0;   // only what is selected is downloaded
@@ -364,7 +448,7 @@ try { if (localStorage.getItem("be.compact") === "1") setCompact(true); } catch 
 $("pwEye").onclick = () => {
   const show = $("pw").type === "password";
   $("pw").type = show ? "text" : "password";
-  $("pwEye").classList.toggle("on", show); $("pwEye").title = show ? "Hide password" : "Show password";
+  $("pwEye").classList.toggle("on", show); $("pwEye").dataset.tt = show ? "hidePw" : "showPw"; $("pwEye").title = t($("pwEye").dataset.tt);
   $("pw").focus();
 };
 $("cbAllHit").onclick = () => {
@@ -383,8 +467,8 @@ function clickLink(href, name) {
 }
 function errText(e) {
   if (e instanceof HttpError) {
-    if ([401, 403, 404, 410].includes(e.status)) return "Trimble Connect refused the download (the share may have been removed or has expired).";
-    return `Trimble Connect answered ${e.status}.`;
+    if ([401, 403, 404, 410].includes(e.status)) return t("refused");
+    return t("answered", { s: e.status });
   }
   return e?.message || String(e);
 }
@@ -410,17 +494,17 @@ async function pickSave(name, zip) {
 async function downloadOne(n) {
   const handle = await pickSave(n.name, false);          // first, while the click still counts as the person's action
   if (handle === null) return;
-  $("prog").textContent = `Preparing “${n.name}”…`;
+  $("prog").textContent = t("preparing", { n: n.name });
   const url = await downloadUrl(n.id);
   if (handle) {
     const res = await fetch(url);
     if (!res.ok) throw new HttpError(res.status, "");
-    $("prog").textContent = `Saving “${n.name}”…`;
+    $("prog").textContent = t("saving", { n: n.name });
     await res.body.pipeTo(await handle.createWritable());   // streamed to the disk, also for big files
-    $("prog").textContent = `“${n.name}” saved.`;
+    $("prog").textContent = t("saved", { n: n.name });
   } else {
     clickLink(url, n.name);                               // browsers without the Save window: their normal download (Downloads)
-    $("prog").textContent = `“${n.name}” is downloading.`;
+    $("prog").textContent = t("downloading", { n: n.name });
   }
 }
 // with folder tree: always a ZIP that keeps the folders (also for one file)
@@ -480,7 +564,7 @@ async function pool(items, n, fn) {
 }
 async function downloadZip(list, keepFolders) {
   const total = list.reduce((s, n) => s + (n.size || 0), 0);
-  if (total > ZIP_MAX) throw new Error(`Too much for one ZIP in the browser (${fmtSize(total)}). Choose fewer files.`);
+  if (total > ZIP_MAX) throw new Error(t("tooMuch", { size: fmtSize(total) }));
   const name = zipName(), handle = await pickSave(name, true);
   if (handle === null) return;
   const used = new Set(), entries = [], failed = [];
@@ -502,9 +586,9 @@ async function downloadZip(list, keepFolders) {
       const blob = await res.blob();
       entries.push({ path, blob, crc: await crcOfBlob(blob), mtime: n.mtime ? n.mtime * 1000 : 0 });
     } catch (e) { failed.push(`${n.name}: ${errText(e)}`); }
-    $("prog").textContent = `Preparing ZIP: ${++done} of ${named.length} files (${fmtSize(total)})`;
+    $("prog").textContent = t("zipProgress", { a: ++done, b: named.length, size: fmtSize(total) });
   });
-  if (!entries.length) throw new Error(failed[0] || "Nothing could be downloaded.");
+  if (!entries.length) throw new Error(failed[0] || t("nothing"));
   entries.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }));
   const zip = buildZip(entries);
   let saved = false;
@@ -514,14 +598,15 @@ async function downloadZip(list, keepFolders) {
     clickLink(url, name);
     setTimeout(() => URL.revokeObjectURL(url), 120000);
   }
-  $("prog").textContent = (failed.length ? `${name}: ${entries.length} files, ${failed.length} failed (${failed[0]})` : `${name}: ${entries.length} files`) + (saved ? " saved." : " downloading.");
+  $("prog").textContent = failed.length ? t("zipFailed", { n: name, a: entries.length, f: failed.length, e: failed[0] })
+                                        : t("zipDone", { n: name, a: entries.length, how: t(saved ? "savedWord" : "downloadingWord") });
 }
 
 // every file of the share: name, size, date and its folders (Trimble returns the folder path of each file)
 async function readFiles() {
   const ids = [...new Set((share.objects || []).filter(o => !o.type || o.type === "FILE").map(o => String(o.id)))];
   const got = new Map(); let done = 0;
-  $("loadText").textContent = `Reading ${ids.length} file${ids.length === 1 ? "" : "s"}…`;
+  loadText("reading", { a: 0, b: ids.length });
   await pool(ids, 6, async id => {
     let f = null;
     try { f = await getJson(`/files/${encodeURIComponent(id)}`, share.accessToken, M.t); }
@@ -533,7 +618,7 @@ async function readFiles() {
       } catch { /* skipped below */ }
     }
     if (f) got.set(id, f);
-    $("loadText").textContent = `Reading files: ${++done} of ${ids.length}…`;
+    loadText("reading", { a: ++done, b: ids.length });
   });
   const list = ids.filter(id => got.has(id)).map(id => {
     const f = got.get(id);
@@ -556,8 +641,8 @@ const NOTE_TAG = "BE1.";
 async function opened() {
   try { await loadShare(); }
   catch (e) {
-    if (e instanceof HttpError && e.status >= 400 && e.status < 500) return message("This link no longer works", "The share was removed in Trimble Connect or it has expired. Ask the sender for a new link.");
-    return message("Trimble Connect could not be reached", errText(e) + " Check the connection and reload the page.");
+    if (e instanceof HttpError && e.status >= 400 && e.status < 500) return message("gone");
+    return message("unreach", { e: errText(e) });
   }
   if (!M.f) {                                                // short link: the list of files is in the share's note
     const note = String(share.message || "");
@@ -565,21 +650,18 @@ async function opened() {
       if (!note.startsWith(NOTE_TAG)) throw new Error("no list");
       const data = note.slice(NOTE_TAG.length).split("~")[0];
       if (data) Object.assign(M, await unpack(unb64u(data), password));
-      else Object.assign(M, { n: "Shared files", e: "", k: 1 });     // a share whose note only marks it as a Direct link
-    } catch { return message("This link cannot be opened", "The note of this share was changed in Trimble Connect. Ask the sender for a new link."); }
+      else Object.assign(M, { n: "", e: "", k: 1 });     // a share whose note only marks it as a Direct link
+    } catch { return message("note"); }
     if (!Array.isArray(M.f)) {                               // newer links: the files are read from Trimble Connect
       try { M.f = await readFiles(); }
-      catch (e) { return message("The files could not be read", errText(e) + " Reload the page to try again."); }
-      if (!M.f.length) return message("No files left in this share", "The shared files were deleted or moved out of reach in Trimble Connect.");
+      catch (e) { return message("read", { e: errText(e) }); }
+      if (!M.f.length) return message("empty");
     }
   }
-  const title = (M.k ? M.n : M.p || M.n) || "Shared files";   // a flat list is named after the project
-  document.title = title;
-  $("appTitle").textContent = title;
-  $("title").textContent = title;
-  const total = M.f.reduce((s, f) => s + (f[2] > 0 ? f[2] : 0), 0);
-  $("info").textContent = [`${M.f.length} file${M.f.length === 1 ? "" : "s"}`, fmtSize(total), M.e ? `link valid until ${M.e}` : ""].filter(Boolean).join(" · ");
-  build(); render(); show("scrMain");
+  title = (M.k ? M.n : M.p || M.n) || "";                   // a flat list is named after the project
+  build();
+  for (const k of files(ROOT)) sel.add(k);                  // everything is ticked at first
+  applyLang(); show("scrMain");
 }
 const hostApi = code => `https://app${code}.connect.trimble.com/tc/api/2.0`;
 function shortLink(text) {                                   // "<host>~<token>"
@@ -589,9 +671,9 @@ function shortLink(text) {                                   // "<host>~<token>"
 }
 async function start() {
   const frag = location.hash.slice(1);
-  if (!frag) return message("No files in this link", "The link is incomplete. Copy the whole link, including everything after the # sign.");
-  if (typeof DecompressionStream !== "function" || !crypto?.subtle) return message("This browser is too old", "Open the link in a current Chrome, Edge, Firefox or Safari.");
-  const damaged = () => message("This link is damaged", "Copy the whole link again, including everything after the # sign.");
+  if (!frag) return message("noLink");
+  if (typeof DecompressionStream !== "function" || !crypto?.subtle) return message("old");
+  const damaged = () => message("damaged");
   if (frag[0] === "2") { try { M = shortLink(frag.slice(1)); } catch { return damaged(); } return opened(); }
   if (frag[0] === "3") {
     let sealed; try { sealed = unb64u(frag.slice(1)); } catch { return damaged(); }
@@ -600,7 +682,7 @@ async function start() {
       e.preventDefault();
       $("pwOk").disabled = true; $("pwErr").textContent = "";
       try { M = shortLink(new TextDecoder().decode(await decrypt(sealed, $("pw").value))); password = $("pw").value; }
-      catch { $("pwErr").textContent = "Wrong password."; $("pwOk").disabled = false; $("pw").select(); return; }
+      catch { $("pwErr").textContent = t("wrongPw"); $("pwOk").disabled = false; $("pw").select(); return; }
       show("scrLoad"); opened();
     };
     return;
@@ -613,7 +695,7 @@ async function start() {
       e.preventDefault();
       $("pwOk").disabled = true; $("pwErr").textContent = "";
       try { M = await unpack(raw, $("pw").value); }
-      catch { $("pwErr").textContent = "Wrong password."; $("pwOk").disabled = false; $("pw").select(); return; }
+      catch { $("pwErr").textContent = t("wrongPw"); $("pwOk").disabled = false; $("pw").select(); return; }
       show("scrLoad"); opened();
     };
     return;
@@ -622,6 +704,8 @@ async function start() {
   opened();
 }
 window.addEventListener("hashchange", () => location.reload());
+loadText("opening");
+applyLang();
 start();
 </script>
 </body>

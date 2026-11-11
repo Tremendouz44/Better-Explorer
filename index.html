@@ -205,6 +205,18 @@
   .lk.done .lk-state { color: #1a7f37; font-weight: 600; }
   .note { font-size: 13px; color: var(--text-2); }
   .modal.wide { width: min(720px, 100%); }
+  dl.sum { display: grid; grid-template-columns: max-content 1fr; gap: 8px 18px; margin: 6px 0 14px; }
+  dl.sum dt { margin: 0; font-size: 13px; color: var(--text-3); }
+  dl.sum dd { margin: 0; font-size: 14px; white-space: pre-wrap; word-break: break-word; }
+  a.btn-secondary { display: inline-flex; align-items: center; text-decoration: none; }
+  .dlk .kv { display: grid; grid-template-columns: 96px 1fr; gap: 6px; font-size: 13px; line-height: 1.7; }
+  .dlk .kv > span:first-child { color: var(--text-3); }
+  .dlk .kind { font-size: 12px; color: var(--text-3); margin: 0 0 4px; }
+  .dlk .acts { display: flex; flex-direction: column; gap: 6px; align-self: flex-start; }
+  .mini-eye { width: 26px; height: 26px; border: 0; border-radius: 50%; background: none; color: var(--text-3); display: inline-grid; place-items: center; cursor: pointer; vertical-align: middle; margin-left: 4px; }
+  .mini-eye:hover { background: var(--line); }
+  .mini-eye.on { color: var(--blue); }
+  .mini-eye svg.i { width: 18px; height: 18px; }
   .pwbox { position: relative; }
   .modal .pwbox input { padding-right: 42px; }
   .eye { position: absolute; right: 3px; top: 3px; width: 34px; height: 34px; border: 0; border-radius: 50%; background: none; color: var(--text-3); display: grid; place-items: center; cursor: pointer; }
@@ -503,6 +515,15 @@
           <div><label for="sdPass">Password (optional)</label><div class="pwbox"><input id="sdPass" type="password" autocomplete="new-password"><button id="sdEye" class="eye" type="button" title="Show password"><svg class="i" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5ZM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg></button></div></div>
         </div>
       </div>
+      <div id="sdMailOpts" class="hidden">
+        <div class="row2">
+          <div><label for="sdMail">Send e-mail via</label><select id="sdMail">
+            <option value="outlook">Outlook (app)</option><option value="outlookweb">Outlook (web)</option>
+            <option value="gmail">Gmail</option><option value="none">Don't send (only copy the link)</option></select></div>
+          <div><label for="sdLang">E-mail language</label><select id="sdLang"><option value="sk">Slovensky</option><option value="en">English</option></select></div>
+        </div>
+        <div id="sdGmailBox"><label for="sdGmail">Gmail account (optional, the one to send from)</label><input id="sdGmail" type="text" placeholder="name@gmail.com" autocomplete="off"></div>
+      </div>
       <p id="shNoPreview" class="note hidden">Trimble Connect cannot show some of these files (for example ZIP), so a share link opens a page without a preview. “Direct download link” gives a link that downloads the file.</p>
       <div id="shPeopleBox">
       <label id="shPeopleLabel" for="shInput">People</label>
@@ -517,9 +538,9 @@
         <label class="check"><input id="shLatest" type="checkbox" checked> Show latest version</label>
       </div>
       <div id="shNoteBox">
-      <label for="shNote">Note</label>
+      <label for="shNote" id="shNoteLabel">Note</label>
       <textarea id="shNote" placeholder="Add a message"></textarea>
-      <p class="note">Note: Any access restrictions placed on the files are removed when the files are shared.</p>
+      <p class="note" id="shNoteWarn">Note: Any access restrictions placed on the files are removed when the files are shared.</p>
       </div>
       <div id="shError" class="form-error"></div>
       <div class="m-foot">
@@ -553,6 +574,29 @@
     <div class="m-foot">
       <button class="btn-secondary" type="button" data-close="dlgArchive">Cancel</button>
       <button id="arOk" class="btn-primary" type="button">Archive</button>
+    </div>
+  </div>
+</div>
+
+<!-- Direct link created: summary -->
+<div id="dlgSum" class="overlay hidden">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sumTitle">
+    <div class="m-head">
+      <h2 id="sumTitle">Direct link created</h2>
+      <button class="icon-btn" type="button" data-close="dlgSum" title="Close"><svg class="i" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg></button>
+    </div>
+    <dl class="sum">
+      <dt>Sent to</dt><dd id="sumTo"></dd>
+      <dt>Expiration</dt><dd id="sumExp"></dd>
+      <dt>Comment</dt><dd id="sumComment"></dd>
+      <dt>Created</dt><dd id="sumCreated"></dd>
+      <dt>Files</dt><dd id="sumFiles"></dd>
+      <dt>Total size</dt><dd id="sumSize"></dd>
+    </dl>
+    <div id="sumLink" class="linklist"></div>
+    <div class="m-foot">
+      <a id="sumMail" class="btn-secondary hidden" target="_blank" rel="noopener" href="#">Open e-mail</a>
+      <button id="sumOk" class="btn-primary" type="button">OK</button>
     </div>
   </div>
 </div>
@@ -648,7 +692,7 @@ import * as TCW from "https://esm.run/trimble-connect-workspace-api";
 /* =====================================================================
    SETTINGS
    ===================================================================== */
-const VERSION = "v2026-11-09.11";
+const VERSION = "v2026-11-11.1";
 const HOSTS = {                                  // project.location -> Core API host
   northamerica:  "https://app.connect.trimble.com",
   europe:        "https://app21.connect.trimble.com",
@@ -1718,7 +1762,7 @@ $("pDownload").onclick = () => { const n = nodes.get(focusId); if (!n) return; n
 const openDialog = id => $(id).classList.remove("hidden");
 const closeDialog = id => $(id).classList.add("hidden");
 document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => closeDialog(b.dataset.close));
-const anyDialogOpen = () => ["dlgMove", "dlgDelete", "dlgFolder", "dlgArchive", "dlgRenew", "dlgShare", "dlgDownload", "dlgLinks"].find(id => !$(id).classList.contains("hidden"));
+const anyDialogOpen = () => ["dlgMove", "dlgDelete", "dlgFolder", "dlgArchive", "dlgRenew", "dlgShare", "dlgDownload", "dlgLinks", "dlgSum"].find(id => !$(id).classList.contains("hidden"));
 
 /* =====================================================================
    MOVE
@@ -1896,6 +1940,7 @@ let shareJob = null, projUsers = null;
 const EMAIL_RE = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
 const isDirect = () => $("shMode").value === "DIRECT";
 const isLinkMode = () => !["PROJECT_USERS", "DIRECT"].includes($("shMode").value);
+const emailMode = () => isLinkMode() || isDirect();       // people are typed as e-mail addresses
 const noPreview = n => !EXT_2D.has(extOf(n.name)) && !EXT_3D.has(extOf(n.name));   // Connect has no viewer for it (zip, rar, exe…)
 
 function localDate(offsetDays) {
@@ -1951,6 +1996,8 @@ function openShareFiles(items, fromFolder, paths, title) {
   $("shExpiry").value = ""; $("shExpiry").min = localDate(0);           // no date = the link does not expire (as in the native Explorer)
   $("sdExpiry").value = ""; $("sdExpiry").min = localDate(0); $("sdPass").value = ""; $("sdTree").checked = true;
   $("sdPass").type = "password"; $("sdEye").classList.remove("on"); $("sdEye").title = "Show password";
+  const ms = mailSettings();
+  $("sdMail").value = ms.via; $("sdLang").value = ms.lang; $("sdGmail").value = ms.gmail;
   $("shLatest").checked = true;
   $("shForm").classList.remove("hidden"); $("shDone").classList.add("hidden");
   $("shOk").disabled = false;
@@ -1958,20 +2005,23 @@ function openShareFiles(items, fromFolder, paths, title) {
   openDialog("dlgShare");
 }
 function shareModeChanged() {
-  const link = isLinkMode(), direct = isDirect();
+  const link = isLinkMode(), direct = isDirect(), mail = emailMode();
   shareJob.chosen = [];                              // members and e-mail addresses are not interchangeable
   $("shLinkOpts").classList.toggle("hidden", !link);
-  $("shPeopleBox").classList.toggle("hidden", direct);
-  $("shNoteBox").classList.toggle("hidden", direct);
+  $("sdMailOpts").classList.toggle("hidden", !direct);
+  $("shNoteLabel").textContent = direct ? "Comment (goes into the e-mail)" : "Note";
+  $("shNote").placeholder = direct ? "Add a comment" : "Add a message";
+  $("shNoteWarn").classList.toggle("hidden", direct);
+  mailOptsChanged();
   $("shDirectNote").classList.toggle("hidden", !direct);
   $("shDirectOpts").classList.toggle("hidden", !direct);
   $("shNoPreview").classList.toggle("hidden", direct || !shareJob.items.some(noPreview));
   $("shOk").textContent = direct ? "Create links" : "Share";
-  $("shPeopleLabel").textContent = link ? "People (optional, e-mail addresses to notify)" : "People";
-  $("shInput").placeholder = link ? "Please enter valid email address" : "Please enter users";
+  $("shPeopleLabel").textContent = direct ? "Send to (e-mail addresses, optional; a copy always goes to you)" : link ? "People (optional, e-mail addresses to notify)" : "People";
+  $("shInput").placeholder = mail ? "Please enter valid email address" : "Please enter users";
   $("shInput").value = ""; $("shError").textContent = "";
   renderChips(); renderSuggest();
-  if (!link) loadProjectUsers().then(renderSuggest).catch(e => { $("shError").textContent = "The project members could not be loaded: " + errText(e); });
+  if (!mail) loadProjectUsers().then(renderSuggest).catch(e => { $("shError").textContent = "The project members could not be loaded: " + errText(e); });
 }
 function renderChips() {
   const box = $("shChips");
@@ -2004,11 +2054,11 @@ function addEmailChip() {
   return true;
 }
 $("shMode").onchange = () => { if (shareJob) shareModeChanged(); };
-$("shInput").oninput = () => { if (shareJob && !isLinkMode()) renderSuggest(); };
-$("shInput").onfocus = () => { if (shareJob && !isLinkMode()) renderSuggest(); };
-$("shInput").onblur = () => { setTimeout(() => $("shSuggest").classList.add("hidden"), 150); if (shareJob && isLinkMode()) addEmailChip(); };
+$("shInput").oninput = () => { if (shareJob && !emailMode()) renderSuggest(); };
+$("shInput").onfocus = () => { if (shareJob && !emailMode()) renderSuggest(); };
+$("shInput").onblur = () => { setTimeout(() => $("shSuggest").classList.add("hidden"), 150); if (shareJob && emailMode()) addEmailChip(); };
 $("shInput").onkeydown = e => {
-  if (!shareJob || !isLinkMode()) return;
+  if (!shareJob || !emailMode()) return;
   if (["Enter", ",", ";", " "].includes(e.key)) { e.preventDefault(); addEmailChip(); }
   else if (e.key === "Backspace" && !$("shInput").value && shareJob.chosen.length) { shareJob.chosen.pop(); renderChips(); }
 };
@@ -2126,28 +2176,69 @@ const LINKS_KEY = () => "be.dlinks." + project.id;
 function savedLinks() { try { return JSON.parse(localStorage.getItem(LINKS_KEY()) || "[]"); } catch { return []; } }
 function storeLinks(list) { try { localStorage.setItem(LINKS_KEY(), JSON.stringify(list.slice(-300))); } catch { /* optional */ } }
 const DL_PAGE = () => new URL("d.html", location.href).href.split(/[?#]/)[0];
-async function createDirectShare() {
+/* ---- e-mail for a Direct link: our own message, opened in Outlook or Gmail (sent by the person, from their address) ---- */
+const MAIL_KEY = "be.mail";
+function mailSettings() {
+  try { const m = JSON.parse(localStorage.getItem(MAIL_KEY) || "{}"); return { via: m.via || "outlook", lang: m.lang || "sk", gmail: m.gmail || "" }; }
+  catch { return { via: "outlook", lang: "sk", gmail: "" }; }
+}
+function mailOptsChanged() {
+  $("sdGmailBox").classList.toggle("hidden", $("sdMail").value !== "gmail");
+  try { localStorage.setItem(MAIL_KEY, JSON.stringify({ via: $("sdMail").value, lang: $("sdLang").value, gmail: $("sdGmail").value.trim() })); } catch { /* optional */ }
+}
+$("sdMail").onchange = $("sdLang").onchange = $("sdGmail").onchange = mailOptsChanged;
+let myMail = null;
+async function myEmail() {                          // the account signed in to Trimble Connect
+  if (myMail != null) return myMail;
+  try { const me = (await tc("/users/me")).json || {}; myMail = String(me.email || ""); myName = [me.firstName, me.lastName].filter(Boolean).join(" "); }
+  catch { myMail = ""; }
+  return myMail;
+}
+let myName = "";
+function mailText(lang, d) {                        // d: { title, comment, link, files, size, expiry, pass }
+  const sk = lang === "sk";
+  const subject = sk ? `${d.title} – súbory na stiahnutie` : `${d.title} – files to download`;
+  const lines = [];
+  if (d.comment) lines.push(d.comment, "");
+  lines.push(sk ? `Súbory na stiahnutie (${d.files} ${d.files === 1 ? "súbor" : d.files < 5 ? "súbory" : "súborov"}, ${d.size}):` : `Files to download (${d.files} file${d.files === 1 ? "" : "s"}, ${d.size}):`);
+  lines.push(d.link, "");
+  lines.push(sk ? `Platnosť linku: ${d.expiry ? "do " + d.expiry : "bez obmedzenia"}` : `Link valid: ${d.expiry ? "until " + d.expiry : "with no end date"}`);
+  if (d.pass) lines.push(sk ? "Link je chránený heslom, heslo vám pošlem zvlášť." : "The link is protected by a password, which I will send separately.");
+  lines.push("", "File Vault by BJM");
+  return { subject, body: lines.join("\r\n") };
+}
+function mailUrl(via, to, cc, subject, body, gmailAccount) {
+  const e = encodeURIComponent;
+  if (via === "gmail") return `https://mail.google.com/mail/?${gmailAccount ? `authuser=${e(gmailAccount)}&` : ""}view=cm&fs=1&to=${e(to.join(","))}&cc=${e(cc.join(","))}&su=${e(subject)}&body=${e(body)}`;
+  if (via === "outlookweb") return `https://outlook.office.com/mail/deeplink/compose?to=${e(to.join(";"))}&cc=${e(cc.join(";"))}&subject=${e(subject)}&body=${e(body)}`;
+  return `mailto:${to.map(e).join(";")}?${cc.length ? `cc=${cc.map(e).join(";")}&` : ""}subject=${e(subject)}&body=${e(body)}`;
+}
+async function createDirectShare(win) {
   const job = shareJob, pass = $("sdPass").value, tree = $("sdTree").checked, exp = $("sdExpiry").value;
-  if (pass && pass.length < 6) { $("shError").textContent = "Use a password of at least 6 characters (10 or more is safer)."; return; }
+  const closeWin = () => { try { win?.close(); } catch { /* already closed */ } };
+  if ($("shInput").value.trim() && !addEmailChip()) { closeWin(); return; }
+  if (pass && pass.length < 6) { $("shError").textContent = "Use a password of at least 6 characters (10 or more is safer)."; closeWin(); return; }
+  const via = $("sdMail").value, lang = $("sdLang").value, gmail = $("sdGmail").value.trim(), comment = $("shNote").value.trim();
+  const to = job.chosen.map(c => c.id);
   job.busy = true; $("shOk").disabled = true; $("shError").textContent = "";
   try {
+    const me = await myEmail();
     const files = job.items.map(n => [n.id, tree ? job.paths.get(n.id) || n.name : n.name, n.size ?? -1, n.modifiedOn ? Math.round(Date.parse(n.modifiedOn) / 1000) || 0 : 0]);
     const list = { n: job.title, e: exp || "", k: tree ? 1 : 0, f: files };
     const body = { projectId: project.id, mode: "PUBLIC", message: "", notify: [], permission: "DOWNLOAD",
                    objects: job.items.map(n => ({ id: n.id, type: "FILE", useLatestVersion: true })) };
     if (exp) body.expiryDate = expiryStamp(exp);
-    // short link: the note keeps only the title, expiry and tree switch; the page reads the files (names, folders, sizes)
-    // from Trimble Connect through the share itself, so the link stays short for any number of files
+    // the note keeps the title, expiry, tree switch, comment and recipients; the page reads the files from Trimble itself
     const hc = hostCode();
     let short = hc != null, why = "";
-    if (short) body.message = NOTE_TAG + await packLink({ v: 2, n: list.n, p: project.name || "", e: list.e, k: list.k }, pass)
-                              + (pass ? "~" + await sealPassword(pass, job.items.map(n => n.id)) : "");
+    const sealed = pass ? "~" + await sealPassword(pass, job.items.map(n => n.id)) : "";
+    if (short) body.message = NOTE_TAG + await packLink({ v: 2, n: list.n, p: project.name || "", e: list.e, k: list.k, c: comment, r: to }, pass) + sealed;
     let res;
     try { res = await tc("/shares", { method: "POST", body }); }
     catch (e) {
       if (!short || !(e instanceof ApiError) || e.status >= 500) throw e;
-      short = false; why = errText(e);                               // e.g. the note is too long: the list goes into the link, the note only marks it as ours
-      body.message = NOTE_TAG + (pass ? "~" + await sealPassword(pass, job.items.map(n => n.id)) : "");
+      short = false; why = errText(e);                               // e.g. the note is too long: the list goes into the link
+      body.message = NOTE_TAG + sealed;
       res = await tc("/shares", { method: "POST", body });
     }
     const objs = listOf(res.json?.objects ?? res.json);
@@ -2158,21 +2249,53 @@ async function createDirectShare() {
     if (short) frag = pass ? "3" + b64u(await encryptBytes(new TextEncoder().encode(hc + "~" + tok), pass)) : "2" + hc + "~" + tok;
     else frag = await packLink({ v: 1, a: API, t: tok, p: project.name || "", ...list }, pass);
     const link = DL_PAGE() + "#" + frag;
-    storeLinks([...savedLinks(), { id: String(res.json?.id || ""), title: job.title, files: files.length, created: Date.now(), expiry: exp || "", pass: !!pass, pw: pass || "", link }]);
-    $("shForm").classList.add("hidden"); $("shDone").classList.remove("hidden");
-    $("shCopy").classList.add("hidden"); $("shLinks").classList.add("hidden"); $("shList").classList.remove("hidden");
-    $("shLinks").value = link;
-    $("shList").innerHTML = `<div class="lk" data-link="${esc(link)}" title="Click to copy this link"><span class="lk-name">${esc(job.title)}</span>`
+    const total = job.items.reduce((s, n) => s + (n.size || 0), 0), created = Date.now();
+    storeLinks([...savedLinks(), { id: String(res.json?.id || ""), title: job.title, files: files.length, created, expiry: exp || "", pass: !!pass, pw: pass || "", link,
+                                   creator: me, comment, to }]);
+    // our own e-mail, opened in the chosen mail program (nothing is sent until the person clicks Send there)
+    let mail = "";
+    if (via !== "none") {
+      const m = mailText(lang, { title: job.title, comment, link, files: files.length, size: fmtSize(total) || "0 B", expiry: exp, pass: !!pass });
+      mail = mailUrl(via, to, me && !to.some(x => x.toLowerCase() === me.toLowerCase()) ? [me] : [], m.subject, m.body, gmail);
+      let opened = false;
+      if (win && !win.closed) {
+        try { win.location.href = mail; opened = true; if (via === "outlook") setTimeout(closeWin, 2500); } catch { opened = false; }
+      }
+      if (!opened) closeWin();
+      $("sumMail").classList.toggle("hidden", opened);
+    } else { closeWin(); $("sumMail").classList.add("hidden"); }
+    $("sumMail").href = mail || "#";
+    // summary
+    const viaText = { outlook: "Outlook", outlookweb: "Outlook (web)", gmail: "Gmail" }[via];
+    $("sumTo").textContent = via === "none" ? "No e-mail (you chose to only copy the link)"
+      : `${to.length ? to.join(", ") : "nobody else"}${me ? `\ncopy: ${me}` : ""}\n(e-mail prepared in ${viaText}: click Send there)`;
+    $("sumExp").textContent = exp ? exp : "No expiration date set";
+    $("sumComment").textContent = comment || "—";
+    $("sumCreated").textContent = fmtDate(new Date(created).toISOString());
+    $("sumFiles").textContent = String(files.length) + (pass ? " · password protected" : "") + (why ? " · long link (the list is in it)" : "");
+    $("sumSize").textContent = fmtSize(total) || "0 B";
+    $("sumLink").innerHTML = `<div class="lk" data-link="${esc(link)}" title="Click to copy this link"><span class="lk-name">${esc(job.title)}</span>`
       + `<span class="lk-url">${esc(link.length > 160 ? link.slice(0, 157) + "…" : link)}</span><span class="lk-state">Click to copy</span></div>`;
-    const n = job.items.length;
-    $("shDoneText").textContent = `Download page with ${n} file${n === 1 ? "" : "s"}${tree ? " (folder tree)" : ""}. `
-      + (exp ? `Valid until ${exp}. ` : "No end date. ") + (pass ? "Password protected. " : "") + "Click the link to copy it. Revoke it any time under Direct links."
-      + (why ? ` (The list of files is in the link, so it is long: ${why})` : "");
+    closeDialog("dlgShare");
+    openDialog("dlgSum");
   } catch (e) {
+    closeWin();
     $("shError").textContent = errText(e);
     $("shOk").disabled = false;
   } finally { job.busy = false; }
 }
+$("sumOk").onclick = () => closeDialog("dlgSum");
+$("dlgSum").onclick = async e => {                   // a click anywhere closes it, except on the link (that copies it) or the mail button
+  const row = e.target.closest(".lk");
+  if (row) {
+    const ok = await copyText(row.dataset.link), st = row.querySelector(".lk-state");
+    row.classList.toggle("done", ok); st.textContent = ok ? "Copied ✓" : "Copy failed";
+    setTimeout(() => { row.classList.remove("done"); st.textContent = "Click to copy"; }, 2500);
+    return;
+  }
+  if (e.target.closest("#sumMail")) { setTimeout(() => closeDialog("dlgSum"), 300); return; }
+  closeDialog("dlgSum");
+};
 
 /* ---- Direct links: the links made here, to copy again or revoke (= delete the share in Trimble Connect) ---- */
 let dlkRows = [];
@@ -2201,7 +2324,8 @@ async function openLinks() {
       const locked = encrypted || (tagged && !hasList && !!pw);         // a link that asks for a password
       if (!link && direct && tok && hc != null) link = locked ? (pw ? `${DL_PAGE()}#3${b64u(await encryptBytes(new TextEncoder().encode(hc + "~" + tok), pw))}` : "")
                                                          : `${DL_PAGE()}#2${hc}~${tok}`;
-      return { id, direct, title, pw, files: objs.length || mine?.files || 0,
+      return { id, direct, title, pw, files: objs.length || mine?.files || 0, creator: mine?.creator || person(x.createdBy) || x.createdBy?.email || "",
+               creatorMail: x.createdBy?.email || mine?.creator || "",
                created: Date.parse(x.createdOn) || mine?.created || 0, expiry: String(x.expiryDate || "").slice(0, 10) || mine?.expiry || "",
                pass: mine ? mine.pass : locked, mode: x.mode || "",
                link: direct ? link : (tok ? `${API}/s/${tok}` : "") };
@@ -2216,23 +2340,31 @@ async function openLinks() {
   renderLinks();
 }
 $("dlkAll").onchange = () => renderLinks();
+const EYE_SVG = '<svg class="i" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5ZM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>';
 const MODE_TEXT = { PUBLIC: "any users with the link", REGISTERED_USERS: "signed in users", PROJECT_USERS: "project members" };
 function renderLinks() {
   const all = $("dlkAll").checked;
   const shown = dlkRows.map((r, i) => [r, i]).filter(([r]) => all || r.direct);
+  const kv = (k, v) => `<div class="kv"><span>${k}</span><span>${v}</span></div>`;
   $("dlkList").innerHTML = shown.length ? shown.map(([r, i]) => `<div class="dlk" data-i="${i}">
       <div class="t"><b title="${esc(r.title)}">${esc(r.title)}</b>
-      <span>${r.direct ? "Direct link" : "Share, " + esc(MODE_TEXT[r.mode] || r.mode.toLowerCase())} · ${r.files} file${r.files === 1 ? "" : "s"} · ${esc(r.created ? fmtDate(new Date(r.created).toISOString()) : "")} · ${r.expiry ? "valid until " + esc(r.expiry) : "no end date"}${r.pass ? ` · password: <span class="pw" data-pwv="${i}">••••••</span>` : ""}</span></div>
-      ${r.pass ? `<button type="button" class="btn-secondary" data-pwbtn="${i}" ${r.pw ? "" : 'disabled title="The password is not known here"'}>Show password</button>` : ""}
-      <button type="button" class="btn-secondary" data-copy="${i}" ${r.link ? "" : 'disabled title="The link with its password exists only where it was created"'}>Copy link</button>
-      <button type="button" class="btn-danger outline" data-revoke="${i}">Revoke</button></div>`).join("")
+        <div class="kind">${r.direct ? "Direct link" : "Share, " + esc(MODE_TEXT[r.mode] || String(r.mode || "").toLowerCase())} · ${r.files} file${r.files === 1 ? "" : "s"}</div>
+        ${kv("Created", esc(r.created ? fmtDate(new Date(r.created).toISOString()) : "—"))}
+        ${kv("Expires", r.expiry ? esc(r.expiry) : "No expiration date set")}
+        ${kv("Link creator", esc(r.creatorMail || r.creator || "—"))}
+        ${kv("Password", r.pass ? `<span class="pw" data-pwv="${i}">••••••</span>${r.pw ? `<button type="button" class="mini-eye" data-pwbtn="${i}" title="Show password">${EYE_SVG}</button>` : ""}` : "none")}
+      </div>
+      <div class="acts">
+        <button type="button" class="btn-secondary" data-copy="${i}" ${r.link ? "" : 'disabled title="The link with its password exists only where it was created"'}>Copy link</button>
+        <button type="button" class="btn-danger outline" data-revoke="${i}">Revoke</button>
+      </div></div>`).join("")
     : `<div class="dlk-none">${all ? "No shares in this project." : "No direct links yet. Make one with Share → Direct download link."}</div>`;
 }
 $("dlkList").onclick = async e => {
   const pb = e.target.closest("[data-pwbtn]");
   if (pb) {
-    const i = +pb.dataset.pwbtn, v = $("dlkList").querySelector(`[data-pwv="${i}"]`), on = pb.textContent === "Show password";
-    v.textContent = on ? dlkRows[i].pw : "••••••"; pb.textContent = on ? "Hide password" : "Show password";
+    const i = +pb.dataset.pwbtn, v = $("dlkList").querySelector(`[data-pwv="${i}"]`), on = !pb.classList.contains("on");
+    v.textContent = on ? dlkRows[i].pw : "••••••"; pb.classList.toggle("on", on); pb.title = on ? "Hide password" : "Show password";
     return;
   }
   const c = e.target.closest("[data-copy]"), r = e.target.closest("[data-revoke]");
@@ -2258,7 +2390,11 @@ $("sdEye").onclick = () => {
 
 $("shOk").onclick = async () => {
   if (!shareJob || shareJob.busy) return;
-  if (isDirect()) { await createDirectShare(); return; }
+  if (isDirect()) {
+    // a mail window has to be opened right away (inside the click), or the browser blocks it
+    const w = $("sdMail").value !== "none" ? window.open("about:blank", "_blank") : null;
+    await createDirectShare(w); return;
+  }
   const link = isLinkMode();
   if (link && $("shInput").value.trim() && !addEmailChip()) return;
   if (!link && !shareJob.chosen.length) { $("shError").textContent = "Choose at least one project member."; return; }
