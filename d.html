@@ -24,7 +24,7 @@
     --line: #e0e1e9; --line-2: #cbcdd6; --guide: #8b90a0;
     --bg: #f1f1f6; --white: #ffffff; --head: #f9f9fb;
     --selected: #dcedf9; --hover: #f5f5f9; --red: #da212c;
-    --rh: 44px; --cb: 32px; --hitw: 44px; --ico: 22px; --tri: 22px;
+    --rh: 44px; --cb: 18px; --hitw: 44px; --ico: 22px; --tri: 22px;
   }
   body.compact { --rh: 22px; --cb: 16px; --hitw: 34px; --ico: 16px; --tri: 18px; }
   body.compact td { font-size: 13px; line-height: 1.2; }
@@ -39,8 +39,9 @@
   .appbar svg { width: 24px; height: 24px; fill: #fff; }
   .appbar .t { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .appbar .by { font-size: 13px; font-weight: 600; opacity: .9; white-space: nowrap; }
-  .watermark { position: fixed; inset: 52px 0 0 0; z-index: 50; display: grid; place-items: center; pointer-events: none; overflow: hidden;
-               font-size: clamp(72px, 16vw, 260px); font-weight: 700; letter-spacing: .02em; color: var(--blue); opacity: .045; transform: rotate(-18deg); white-space: nowrap; user-select: none; }
+  .watermark { position: fixed; right: 4vw; bottom: 6vh; z-index: 50; pointer-events: none; user-select: none; text-align: right; white-space: nowrap;
+               font-size: clamp(72px, 16vw, 260px); font-weight: 700; line-height: .95; letter-spacing: .02em; color: var(--blue); opacity: .045; }
+  .watermark small { display: block; font-size: .5em; }
   .comment { margin: 2px 0 4px; font-size: 16px; color: var(--text); white-space: pre-wrap; word-break: break-word; }
   .icon-btn.compact-btn:not(.on) { color: var(--text-3); }
   .lang { margin-left: 14px; display: flex; align-items: center; gap: 2px; font-size: 15px; }
@@ -136,7 +137,7 @@
   <div class="lang"><button type="button" data-lang="sk">SK</button><span>|</span><button type="button" data-lang="en">ENG</button></div>
   <span class="by">File Vault by BJM</span>
 </header>
-<div class="watermark" aria-hidden="true">File Vault</div>
+<div class="watermark" aria-hidden="true">File Vault<small>by BJM</small></div>
 <main>
   <section id="scrLoad" class="screen"><div class="spinner"></div><p id="loadText"></p></section>
 
@@ -451,10 +452,10 @@ function setCompact(on) {                                   // remembered like i
   document.body.classList.toggle("compact", on);
   $("tCompact").classList.toggle("on", on);
   $("tCompact").innerHTML = on ? COMPACT_ON : COMPACT_OFF;
-  try { localStorage.setItem("be.compact", on ? "1" : "0"); } catch { /* optional */ }
+  try { localStorage.setItem("be.compact2", on ? "1" : "0"); } catch { /* optional */ }
 }
 $("tCompact").onclick = () => setCompact(!document.body.classList.contains("compact"));
-try { if (localStorage.getItem("be.compact") === "1") setCompact(true); } catch { /* optional */ }
+{ let on = true; try { on = localStorage.getItem("be.compact2") !== "0"; } catch { /* optional */ } setCompact(on); }   // compact unless switched off
 $("pwEye").onclick = () => {
   const show = $("pw").type === "password";
   $("pw").type = show ? "text" : "password";
@@ -491,7 +492,7 @@ async function run(fn) {
 }
 const two = x => String(x).padStart(2, "0");
 const safe = t => String(t || "").replace(/[\\/:*?"<>|]+/g, " ").trim();
-function zipName() { const d = new Date(); return `${safe(M.p || M.n) || "Shared files"}_${d.getFullYear()}_${two(d.getMonth() + 1)}_${two(d.getDate())}.zip`; }
+function zipName() { const d = new Date(); return `${safe(title || M.p) || "Shared files"}_${d.getFullYear()}_${two(d.getMonth() + 1)}_${two(d.getDate())}.zip`; }   // named after the title in the blue bar
 // The "Save as" window is used where the browser has it (Chrome, Edge). A file saved through it does not appear in the
 // browser's download list; other browsers fall back to their normal download.
 const USE_PICKER = true;
@@ -669,7 +670,7 @@ async function opened() {
       if (!M.f.length) return message("empty");
     }
   }
-  title = (M.k ? M.n : M.p || M.n) || "";                   // a flat list is named after the project
+  title = M.n || M.p || "";                                 // the link name (the project name when none was given)
   build();
   for (const k of files(ROOT)) sel.add(k);                  // everything is ticked at first
   $("comment").textContent = M.c || "";                     // the sender's comment, e.g. "RPD documentation"

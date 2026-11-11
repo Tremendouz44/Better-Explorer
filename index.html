@@ -23,7 +23,7 @@
     --selected: #dcedf9; --hover: #f5f5f9;
     --red: #da212c; --red-hover: #b51d25;
     --focusbg: #e8f2fb;
-    --rh: 44px; --cb: 32px; --hitw: 44px; --ico: 22px; --tri: 22px;     /* row height, checkbox, checkbox hit area, icons */
+    --rh: 44px; --cb: 18px; --hitw: 44px; --ico: 22px; --tri: 22px;     /* row height, checkbox, checkbox hit area, icons */
   }
   body.compact { --rh: 22px; --cb: 16px; --hitw: 34px; --ico: 16px; --tri: 18px; }
   * { box-sizing: border-box; }
@@ -510,6 +510,8 @@
       </select>
       <p id="shDirectNote" class="note hidden">One link to a download page with these files: no sign-in needed, any file type, folders as a tree. Deleting the share in Trimble Connect stops the link.</p>
       <div id="shDirectOpts" class="hidden">
+        <label for="sdName">Link name (shown at the top of the download page and used for the ZIP name)</label>
+        <input id="sdName" type="text" autocomplete="off">
         <label class="check"><input id="sdTree" type="checkbox" checked> Keep folder tree</label>
         <div class="row2">
           <div><label for="sdExpiry">Link expires on (empty = never)</label><input id="sdExpiry" type="date"></div>
@@ -584,7 +586,6 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sumTitle">
     <div class="m-head">
       <h2 id="sumTitle">Direct link created</h2>
-      <button class="icon-btn" type="button" data-close="dlgSum" title="Close"><svg class="i" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg></button>
     </div>
     <dl class="sum">
       <dt id="sumToL">Sent to</dt><dd id="sumTo"></dd>
@@ -693,7 +694,7 @@ import * as TCW from "https://esm.run/trimble-connect-workspace-api";
 /* =====================================================================
    SETTINGS
    ===================================================================== */
-const VERSION = "v2026-11-11.3";
+const VERSION = "v2026-11-11.4";
 const HOSTS = {                                  // project.location -> Core API host
   northamerica:  "https://app.connect.trimble.com",
   europe:        "https://app21.connect.trimble.com",
@@ -1997,6 +1998,7 @@ function openShareFiles(items, fromFolder, paths, title) {
   $("shNote").value = ""; $("shInput").value = ""; $("shError").textContent = "";
   $("shExpiry").value = ""; $("shExpiry").min = localDate(0);           // no date = the link does not expire (as in the native Explorer)
   $("sdExpiry").value = ""; $("sdExpiry").min = localDate(0); $("sdPass").value = ""; $("sdTree").checked = true;
+  $("sdName").value = ""; $("sdName").placeholder = project?.name || "Shared files";
   $("sdPass").type = "password"; $("sdEye").classList.remove("on"); $("sdEye").title = "Show password"; $("sdEye").innerHTML = EYE_SVG;
   const ms = mailSettings();
   $("sdMail").value = ms.via; $("sdLang").value = ms.lang; $("sdGmail").value = ms.gmail;
@@ -2227,7 +2229,8 @@ async function createDirectShare(win) {
   try {
     const me = await myEmail();
     const files = job.items.map(n => [n.id, tree ? job.paths.get(n.id) || n.name : n.name, n.size ?? -1, n.modifiedOn ? Math.round(Date.parse(n.modifiedOn) / 1000) || 0 : 0]);
-    const list = { n: job.title, e: exp || "", k: tree ? 1 : 0, c: comment, f: files };
+    const linkName = $("sdName").value.trim() || project?.name || job.title;      // empty field = the project name
+    const list = { n: linkName, e: exp || "", k: tree ? 1 : 0, c: comment, f: files };
     const body = { projectId: project.id, mode: "PUBLIC", message: "", notify: [], permission: "DOWNLOAD",
                    objects: job.items.map(n => ({ id: n.id, type: "FILE", useLatestVersion: true })) };
     if (exp) body.expiryDate = expiryStamp(exp);
@@ -2253,12 +2256,12 @@ async function createDirectShare(win) {
     else frag = await packLink({ v: 1, a: API, t: tok, p: project.name || "", ...list }, pass);
     const link = DL_PAGE() + "#" + frag;
     const total = job.items.reduce((s, n) => s + (n.size || 0), 0), created = Date.now();
-    storeLinks([...savedLinks(), { id: String(res.json?.id || ""), title: job.title, files: files.length, created, expiry: exp || "", pass: !!pass, pw: pass || "", link,
+    storeLinks([...savedLinks(), { id: String(res.json?.id || ""), title: linkName, files: files.length, created, expiry: exp || "", pass: !!pass, pw: pass || "", link,
                                    creator: me, comment, to }]);
     // our own e-mail, opened in the chosen mail program (nothing is sent until the person clicks Send there)
     let mail = "";
     if (via !== "none") {
-      const m = mailText(lang, { title: job.title, comment, link, files: files.length, size: fmtSize(total) || "0 B", expiry: exp, pass: !!pass });
+      const m = mailText(lang, { title: linkName, comment, link, files: files.length, size: fmtSize(total) || "0 B", expiry: exp, pass: !!pass });
       mail = mailUrl(via, to, me && !to.some(x => x.toLowerCase() === me.toLowerCase()) ? [me] : [], m.subject, m.body, gmail);
       let opened = false;
       if (win && !win.closed) {
@@ -2278,7 +2281,7 @@ async function createDirectShare(win) {
     $("sumCreated").textContent = fmtDate(new Date(created).toISOString());
     $("sumFiles").textContent = String(files.length) + (pass ? " · password protected" : "") + (why ? " · long link (the list is in it)" : "");
     $("sumSize").textContent = fmtSize(total) || "0 B";
-    $("sumLink").innerHTML = `<div class="lk" data-link="${esc(link)}" title="Click to copy this link"><span class="lk-name">${esc(job.title)}</span>`
+    $("sumLink").innerHTML = `<div class="lk" data-link="${esc(link)}" title="Click to copy this link"><span class="lk-name">${esc(linkName)}</span>`
       + `<span class="lk-url">${esc(link.length > 160 ? link.slice(0, 157) + "…" : link)}</span><span class="lk-state">Click to copy</span></div>`;
     closeDialog("dlgShare");
     openDialog("dlgSum");
@@ -2289,7 +2292,7 @@ async function createDirectShare(win) {
   } finally { job.busy = false; }
 }
 $("sumOk").onclick = () => closeDialog("dlgSum");
-$("dlgSum").onclick = async e => {                   // a click anywhere closes it, except on the link (that copies it) or the mail button
+$("dlgSum").onclick = async e => {                   // only OK closes it; a click on the link copies it
   const row = e.target.closest(".lk");
   if (row) {
     const ok = await copyText(row.dataset.link), st = row.querySelector(".lk-state");
@@ -2297,8 +2300,6 @@ $("dlgSum").onclick = async e => {                   // a click anywhere closes 
     setTimeout(() => { row.classList.remove("done"); st.textContent = "Click to copy"; }, 2500);
     return;
   }
-  if (e.target.closest("#sumMail")) { setTimeout(() => closeDialog("dlgSum"), 300); return; }
-  closeDialog("dlgSum");
 };
 
 /* ---- Direct links: the links made here, to copy again or revoke (= delete the share in Trimble Connect) ---- */
@@ -2472,7 +2473,7 @@ $("sShare").onclick = () => openShare(archiveUnitsFromSelection());         // a
    Moves the chosen files / folders into an archive folder at the top of the project, into the same folder
    path they have now. Missing folders are created; a folder that is already there is reused.
    ===================================================================== */
-const ARCH_NAME = "Archive", COMPACT_KEY = "be.compact";
+const ARCH_NAME = "Archive", COMPACT_KEY = "be.compact2";
 let archJob = null;
 
 // the biggest things that are completely ticked (a whole folder counts as one), plus single ticked files
@@ -2691,7 +2692,7 @@ function setCompact(on) {
   try { localStorage.setItem(COMPACT_KEY, on ? "1" : "0"); } catch { /* optional */ }
 }
 $("btnCompact").onclick = () => setCompact(!document.body.classList.contains("compact"));
-try { if (localStorage.getItem(COMPACT_KEY) === "1") setCompact(true); } catch { /* optional */ }
+{ let on = true; try { on = localStorage.getItem(COMPACT_KEY) !== "0"; } catch { /* optional */ } setCompact(on); }   // compact unless switched off
 
 /* =====================================================================
    ADD: upload files, new folder (goes into the folder open in the panel, else the root)
@@ -2925,6 +2926,7 @@ document.addEventListener("drop", e => { if (hasFiles(e)) e.preventDefault(); })
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
   const dlg = anyDialogOpen();
+  if (dlg === "dlgSum") return;                      // the summary closes with OK only
   if (dlg) { closeDialog(dlg); return; }
   if (!$("addMenu").classList.contains("hidden")) { $("addMenu").classList.add("hidden"); return; }
   const a = document.activeElement;
