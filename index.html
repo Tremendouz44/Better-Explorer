@@ -209,18 +209,18 @@
   dl.sum dt { margin: 0; font-size: 13px; color: var(--text-3); }
   dl.sum dd { margin: 0; font-size: 14px; white-space: pre-wrap; word-break: break-word; }
   a.btn-secondary { display: inline-flex; align-items: center; text-decoration: none; }
-  .dlk .kv { display: grid; grid-template-columns: 96px 1fr; gap: 6px; font-size: 13px; line-height: 1.7; }
+  .dlk .kv { display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 6px; font-size: 13px; line-height: 1.7; }
+  .dlk .kv .pw { line-height: 1; }
   .dlk .kv > span:first-child { color: var(--text-3); }
   .dlk .kind { font-size: 12px; color: var(--text-3); margin: 0 0 4px; }
   .dlk .acts { display: flex; flex-direction: column; gap: 6px; align-self: flex-start; }
-  .mini-eye { width: 26px; height: 26px; border: 0; border-radius: 50%; background: none; color: var(--text-3); display: inline-grid; place-items: center; cursor: pointer; vertical-align: middle; margin-left: 4px; }
-  .mini-eye:hover { background: var(--line); }
+  .pwcell { display: inline-flex; align-items: center; gap: 6px; }
+  .mini-eye { width: 20px; height: 20px; border: 0; padding: 0; background: none; color: #8a8e99; display: grid; place-items: center; cursor: pointer; }
   .mini-eye.on { color: var(--blue); }
   .mini-eye svg.i { width: 18px; height: 18px; }
   .pwbox { position: relative; }
   .modal .pwbox input { padding-right: 42px; }
-  .eye { position: absolute; right: 3px; top: 3px; width: 34px; height: 34px; border: 0; border-radius: 50%; background: none; color: var(--text-3); display: grid; place-items: center; cursor: pointer; }
-  .eye:hover { background: var(--line); }
+  .eye { position: absolute; right: 3px; top: 3px; width: 34px; height: 34px; border: 0; background: none; color: #8a8e99; display: grid; place-items: center; cursor: pointer; padding: 0; }
   .eye.on { color: var(--blue); }
   .dlk .pw { font-family: Consolas, monospace; color: var(--text); }
   .dlk-list { margin-top: 10px; max-height: 55vh; overflow: auto; border: 1px solid var(--line); background: var(--white); }
@@ -512,7 +512,7 @@
         <label class="check"><input id="sdTree" type="checkbox" checked> Keep folder tree</label>
         <div class="row2">
           <div><label for="sdExpiry">Link expires on (empty = never)</label><input id="sdExpiry" type="date"></div>
-          <div><label for="sdPass">Password (optional)</label><div class="pwbox"><input id="sdPass" type="password" autocomplete="new-password"><button id="sdEye" class="eye" type="button" title="Show password"><svg class="i" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5ZM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg></button></div></div>
+          <div><label for="sdPass">Password (optional)</label><div class="pwbox"><input id="sdPass" type="password" autocomplete="new-password"><button id="sdEye" class="eye" type="button" title="Show password"><svg class="i" viewBox="0 0 24 24"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7ZM2 4.27l2.28 2.28.46.46A11.8 11.8 0 0 0 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27ZM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2Zm4.31-.78 3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01Z"/></svg></button></div></div>
         </div>
       </div>
       <div id="sdMailOpts" class="hidden">
@@ -692,7 +692,7 @@ import * as TCW from "https://esm.run/trimble-connect-workspace-api";
 /* =====================================================================
    SETTINGS
    ===================================================================== */
-const VERSION = "v2026-11-11.1";
+const VERSION = "v2026-11-11.2";
 const HOSTS = {                                  // project.location -> Core API host
   northamerica:  "https://app.connect.trimble.com",
   europe:        "https://app21.connect.trimble.com",
@@ -1995,7 +1995,7 @@ function openShareFiles(items, fromFolder, paths, title) {
   $("shNote").value = ""; $("shInput").value = ""; $("shError").textContent = "";
   $("shExpiry").value = ""; $("shExpiry").min = localDate(0);           // no date = the link does not expire (as in the native Explorer)
   $("sdExpiry").value = ""; $("sdExpiry").min = localDate(0); $("sdPass").value = ""; $("sdTree").checked = true;
-  $("sdPass").type = "password"; $("sdEye").classList.remove("on"); $("sdEye").title = "Show password";
+  $("sdPass").type = "password"; $("sdEye").classList.remove("on"); $("sdEye").title = "Show password"; $("sdEye").innerHTML = EYE_SVG;
   const ms = mailSettings();
   $("sdMail").value = ms.via; $("sdLang").value = ms.lang; $("sdGmail").value = ms.gmail;
   $("shLatest").checked = true;
@@ -2340,7 +2340,7 @@ async function openLinks() {
   renderLinks();
 }
 $("dlkAll").onchange = () => renderLinks();
-const EYE_SVG = '<svg class="i" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5ZM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>';
+const EYE_SVG = '<svg class="i" viewBox="0 0 24 24"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7ZM2 4.27l2.28 2.28.46.46A11.8 11.8 0 0 0 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27ZM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2Zm4.31-.78 3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01Z"/></svg>', EYE_ON_SVG = '<svg class="i" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5ZM12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10Zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>';
 const MODE_TEXT = { PUBLIC: "any users with the link", REGISTERED_USERS: "signed in users", PROJECT_USERS: "project members" };
 function renderLinks() {
   const all = $("dlkAll").checked;
@@ -2352,7 +2352,7 @@ function renderLinks() {
         ${kv("Created", esc(r.created ? fmtDate(new Date(r.created).toISOString()) : "—"))}
         ${kv("Expires", r.expiry ? esc(r.expiry) : "No expiration date set")}
         ${kv("Link creator", esc(r.creatorMail || r.creator || "—"))}
-        ${kv("Password", r.pass ? `<span class="pw" data-pwv="${i}">••••••</span>${r.pw ? `<button type="button" class="mini-eye" data-pwbtn="${i}" title="Show password">${EYE_SVG}</button>` : ""}` : "none")}
+        ${kv("Password", r.pass ? `<span class="pwcell"><span class="pw" data-pwv="${i}">••••••</span>${r.pw ? `<button type="button" class="mini-eye" data-pwbtn="${i}" title="Show password">${EYE_SVG}</button>` : ""}</span>` : "none")}
       </div>
       <div class="acts">
         <button type="button" class="btn-secondary" data-copy="${i}" ${r.link ? "" : 'disabled title="The link with its password exists only where it was created"'}>Copy link</button>
@@ -2365,6 +2365,7 @@ $("dlkList").onclick = async e => {
   if (pb) {
     const i = +pb.dataset.pwbtn, v = $("dlkList").querySelector(`[data-pwv="${i}"]`), on = !pb.classList.contains("on");
     v.textContent = on ? dlkRows[i].pw : "••••••"; pb.classList.toggle("on", on); pb.title = on ? "Hide password" : "Show password";
+    pb.innerHTML = on ? EYE_ON_SVG : EYE_SVG;
     return;
   }
   const c = e.target.closest("[data-copy]"), r = e.target.closest("[data-revoke]");
@@ -2386,6 +2387,7 @@ $("sdEye").onclick = () => {
   const show = $("sdPass").type === "password";
   $("sdPass").type = show ? "text" : "password";
   $("sdEye").classList.toggle("on", show); $("sdEye").title = show ? "Hide password" : "Show password";
+  $("sdEye").innerHTML = show ? EYE_ON_SVG : EYE_SVG;
 };
 
 $("shOk").onclick = async () => {
