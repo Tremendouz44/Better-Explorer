@@ -60,6 +60,7 @@
   .icon-btn { width: 36px; height: 36px; border: 0; background: none; border-radius: 50%; display: grid; place-items: center; color: var(--text); cursor: pointer; flex: none; }
   .icon-btn:hover { background: var(--line); }
   .icon-btn.on { background: var(--blue-tint); color: var(--blue); }
+  .icon-btn.compact-btn:not(.on) { color: var(--text-3); }
   .text-btn { height: 34px; padding: 0 12px; border: 0; background: none; border-radius: 4px; color: var(--blue); font-size: 14px; font-weight: 600; cursor: pointer; }
   .text-btn:hover { background: var(--blue-tint); }
   .addwrap { position: relative; margin-left: 8px; }
@@ -294,8 +295,8 @@
       <button id="btnRefresh" class="icon-btn" type="button" title="Refresh">
         <svg class="i" viewBox="0 0 24 24"><path d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35Z"/></svg>
       </button>
-      <button id="btnCompact" class="icon-btn" type="button" title="Compact rows">
-        <svg class="i" viewBox="0 0 24 24"><path d="M3 5h18v2H3V5Zm0 4h18v2H3V9Zm0 4h18v2H3v-2Zm0 4h18v2H3v-2Z"/></svg>
+      <button id="btnCompact" class="icon-btn compact-btn" type="button" title="Compact rows">
+        <svg class="i" viewBox="0 0 24 24"><path d="M3 4h18v2H3V4Zm0 7h18v2H3v-2Zm0 7h18v2H3v-2Z"/></svg>
       </button>
     </div>
     <div id="crumbs" class="crumbs"></div>
@@ -586,7 +587,7 @@
       <button class="icon-btn" type="button" data-close="dlgSum" title="Close"><svg class="i" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg></button>
     </div>
     <dl class="sum">
-      <dt>Sent to</dt><dd id="sumTo"></dd>
+      <dt id="sumToL">Sent to</dt><dd id="sumTo"></dd>
       <dt>Expiration</dt><dd id="sumExp"></dd>
       <dt>Comment</dt><dd id="sumComment"></dd>
       <dt>Created</dt><dd id="sumCreated"></dd>
@@ -692,7 +693,7 @@ import * as TCW from "https://esm.run/trimble-connect-workspace-api";
 /* =====================================================================
    SETTINGS
    ===================================================================== */
-const VERSION = "v2026-11-11.2";
+const VERSION = "v2026-11-11.3";
 const HOSTS = {                                  // project.location -> Core API host
   northamerica:  "https://app.connect.trimble.com",
   europe:        "https://app21.connect.trimble.com",
@@ -1940,6 +1941,7 @@ let shareJob = null, projUsers = null;
 const EMAIL_RE = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
 const isDirect = () => $("shMode").value === "DIRECT";
 const isLinkMode = () => !["PROJECT_USERS", "DIRECT"].includes($("shMode").value);
+const MAIL_ENABLED = false;                               // sending the link by e-mail (Outlook / Gmail) is switched off for now
 const emailMode = () => isLinkMode() || isDirect();       // people are typed as e-mail addresses
 const noPreview = n => !EXT_2D.has(extOf(n.name)) && !EXT_3D.has(extOf(n.name));   // Connect has no viewer for it (zip, rar, exe…)
 
@@ -2008,8 +2010,9 @@ function shareModeChanged() {
   const link = isLinkMode(), direct = isDirect(), mail = emailMode();
   shareJob.chosen = [];                              // members and e-mail addresses are not interchangeable
   $("shLinkOpts").classList.toggle("hidden", !link);
-  $("sdMailOpts").classList.toggle("hidden", !direct);
-  $("shNoteLabel").textContent = direct ? "Comment (goes into the e-mail)" : "Note";
+  $("sdMailOpts").classList.toggle("hidden", !direct || !MAIL_ENABLED);
+  $("shPeopleBox").classList.toggle("hidden", direct && !MAIL_ENABLED);
+  $("shNoteLabel").textContent = direct ? "Comment (shown at the top of the download page, e.g. “RPD documentation”)" : "Note";
   $("shNote").placeholder = direct ? "Add a comment" : "Add a message";
   $("shNoteWarn").classList.toggle("hidden", direct);
   mailOptsChanged();
@@ -2218,13 +2221,13 @@ async function createDirectShare(win) {
   const closeWin = () => { try { win?.close(); } catch { /* already closed */ } };
   if ($("shInput").value.trim() && !addEmailChip()) { closeWin(); return; }
   if (pass && pass.length < 6) { $("shError").textContent = "Use a password of at least 6 characters (10 or more is safer)."; closeWin(); return; }
-  const via = $("sdMail").value, lang = $("sdLang").value, gmail = $("sdGmail").value.trim(), comment = $("shNote").value.trim();
-  const to = job.chosen.map(c => c.id);
+  const via = MAIL_ENABLED ? $("sdMail").value : "none", lang = $("sdLang").value, gmail = $("sdGmail").value.trim(), comment = $("shNote").value.trim();
+  const to = MAIL_ENABLED ? job.chosen.map(c => c.id) : [];
   job.busy = true; $("shOk").disabled = true; $("shError").textContent = "";
   try {
     const me = await myEmail();
     const files = job.items.map(n => [n.id, tree ? job.paths.get(n.id) || n.name : n.name, n.size ?? -1, n.modifiedOn ? Math.round(Date.parse(n.modifiedOn) / 1000) || 0 : 0]);
-    const list = { n: job.title, e: exp || "", k: tree ? 1 : 0, f: files };
+    const list = { n: job.title, e: exp || "", k: tree ? 1 : 0, c: comment, f: files };
     const body = { projectId: project.id, mode: "PUBLIC", message: "", notify: [], permission: "DOWNLOAD",
                    objects: job.items.map(n => ({ id: n.id, type: "FILE", useLatestVersion: true })) };
     if (exp) body.expiryDate = expiryStamp(exp);
@@ -2269,6 +2272,7 @@ async function createDirectShare(win) {
     const viaText = { outlook: "Outlook", outlookweb: "Outlook (web)", gmail: "Gmail" }[via];
     $("sumTo").textContent = via === "none" ? "No e-mail (you chose to only copy the link)"
       : `${to.length ? to.join(", ") : "nobody else"}${me ? `\ncopy: ${me}` : ""}\n(e-mail prepared in ${viaText}: click Send there)`;
+    $("sumToL").classList.toggle("hidden", !MAIL_ENABLED); $("sumTo").classList.toggle("hidden", !MAIL_ENABLED);
     $("sumExp").textContent = exp ? exp : "No expiration date set";
     $("sumComment").textContent = comment || "—";
     $("sumCreated").textContent = fmtDate(new Date(created).toISOString());
@@ -2394,7 +2398,7 @@ $("shOk").onclick = async () => {
   if (!shareJob || shareJob.busy) return;
   if (isDirect()) {
     // a mail window has to be opened right away (inside the click), or the browser blocks it
-    const w = $("sdMail").value !== "none" ? window.open("about:blank", "_blank") : null;
+    const w = MAIL_ENABLED && $("sdMail").value !== "none" ? window.open("about:blank", "_blank") : null;
     await createDirectShare(w); return;
   }
   const link = isLinkMode();
@@ -2679,9 +2683,11 @@ $("rnOk").onclick = async () => {
 };
 
 /* ---- compact rows ---- */
+const COMPACT_ON = '<svg class="i" viewBox="0 0 24 24"><path d="M3 5h18v2H3V5Zm0 4h18v2H3V9Zm0 4h18v2H3v-2Zm0 4h18v2H3v-2Z"/></svg>', COMPACT_OFF = '<svg class="i" viewBox="0 0 24 24"><path d="M3 4h18v2H3V4Zm0 7h18v2H3v-2Zm0 7h18v2H3v-2Z"/></svg>';
 function setCompact(on) {
   document.body.classList.toggle("compact", on);
   $("btnCompact").classList.toggle("on", on);
+  $("btnCompact").innerHTML = on ? COMPACT_ON : COMPACT_OFF;
   try { localStorage.setItem(COMPACT_KEY, on ? "1" : "0"); } catch { /* optional */ }
 }
 $("btnCompact").onclick = () => setCompact(!document.body.classList.contains("compact"));

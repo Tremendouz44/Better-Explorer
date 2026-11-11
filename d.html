@@ -39,8 +39,13 @@
   .appbar svg { width: 24px; height: 24px; fill: #fff; }
   .appbar .t { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .appbar .by { font-size: 13px; font-weight: 600; opacity: .9; white-space: nowrap; }
-  .lang { margin-left: auto; display: flex; align-items: center; gap: 2px; font-size: 13px; }
-  .lang button { border: 0; background: none; color: rgba(255,255,255,.7); font: inherit; font-weight: 600; padding: 4px 6px; border-radius: 4px; cursor: pointer; }
+  .watermark { position: fixed; inset: 52px 0 0 0; z-index: 50; display: grid; place-items: center; pointer-events: none; overflow: hidden;
+               font-size: clamp(72px, 16vw, 260px); font-weight: 700; letter-spacing: .02em; color: var(--blue); opacity: .045; transform: rotate(-18deg); white-space: nowrap; user-select: none; }
+  .comment { margin: 2px 0 4px; font-size: 16px; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+  .icon-btn.compact-btn:not(.on) { color: var(--text-3); }
+  .lang { margin-left: 14px; display: flex; align-items: center; gap: 2px; font-size: 15px; }
+  .appbar .by { margin-left: auto; }
+  .lang button { border: 0; background: none; color: rgba(255,255,255,.7); font: inherit; font-weight: 600; padding: 4px 7px; border-radius: 4px; cursor: pointer; }
   .lang button:hover { background: rgba(255,255,255,.12); color: #fff; }
   .lang button.on { color: #fff; text-decoration: underline; text-underline-offset: 4px; }
   .lang span { opacity: .5; }
@@ -131,6 +136,7 @@
   <div class="lang"><button type="button" data-lang="sk">SK</button><span>|</span><button type="button" data-lang="en">ENG</button></div>
   <span class="by">File Vault by BJM</span>
 </header>
+<div class="watermark" aria-hidden="true">File Vault</div>
 <main>
   <section id="scrLoad" class="screen"><div class="spinner"></div><p id="loadText"></p></section>
 
@@ -148,11 +154,12 @@
   <section id="scrMsg" class="screen hidden"><h2 id="msgT"></h2><p id="msgP"></p></section>
 
   <section id="scrMain" class="hidden">
+    <div id="comment" class="comment hidden"></div>
     <div class="toolbar">
       <button id="tExpand" class="text-btn" type="button" data-t="expand"></button>
       <button id="tCollapse" class="text-btn" type="button" data-t="collapse"></button>
-      <button id="tCompact" class="icon-btn" type="button" data-tt="compact">
-        <svg class="i" viewBox="0 0 24 24"><path d="M3 5h18v2H3V5Zm0 4h18v2H3V9Zm0 4h18v2H3v-2Zm0 4h18v2H3v-2Z"/></svg>
+      <button id="tCompact" class="icon-btn compact-btn" type="button" data-tt="compact">
+        <svg class="i" viewBox="0 0 24 24"><path d="M3 4h18v2H3V4Zm0 7h18v2H3v-2Zm0 7h18v2H3v-2Z"/></svg>
       </button>
     </div>
     <div class="bar">
@@ -439,9 +446,11 @@ $("tExpand").onclick = () => { for (const n of nodes.values()) if (n.type === "F
 $("tCollapse").onclick = () => { open.clear(); render(); };
 $("bClear").onclick = () => { sel.clear(); render(); };
 $("bInvert").onclick = () => { for (const k of files(ROOT)) sel.has(k) ? sel.delete(k) : sel.add(k); render(); };
+const COMPACT_ON = '<svg class="i" viewBox="0 0 24 24"><path d="M3 5h18v2H3V5Zm0 4h18v2H3V9Zm0 4h18v2H3v-2Zm0 4h18v2H3v-2Z"/></svg>', COMPACT_OFF = '<svg class="i" viewBox="0 0 24 24"><path d="M3 4h18v2H3V4Zm0 7h18v2H3v-2Zm0 7h18v2H3v-2Z"/></svg>';
 function setCompact(on) {                                   // remembered like in Better explorer
   document.body.classList.toggle("compact", on);
   $("tCompact").classList.toggle("on", on);
+  $("tCompact").innerHTML = on ? COMPACT_ON : COMPACT_OFF;
   try { localStorage.setItem("be.compact", on ? "1" : "0"); } catch { /* optional */ }
 }
 $("tCompact").onclick = () => setCompact(!document.body.classList.contains("compact"));
@@ -663,6 +672,8 @@ async function opened() {
   title = (M.k ? M.n : M.p || M.n) || "";                   // a flat list is named after the project
   build();
   for (const k of files(ROOT)) sel.add(k);                  // everything is ticked at first
+  $("comment").textContent = M.c || "";                     // the sender's comment, e.g. "RPD documentation"
+  $("comment").classList.toggle("hidden", !M.c);
   applyLang(); show("scrMain");
 }
 const hostApi = code => `https://app${code}.connect.trimble.com/tc/api/2.0`;
