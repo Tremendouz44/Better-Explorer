@@ -702,7 +702,7 @@ import * as TCW from "https://esm.run/trimble-connect-workspace-api";
 /* =====================================================================
    SETTINGS
    ===================================================================== */
-const VERSION = "v2026-11-12.3";
+const VERSION = "v2026-11-12.4";
 const HOSTS = {                                  // project.location -> Core API host
   northamerica:  "https://app.connect.trimble.com",
   europe:        "https://app21.connect.trimble.com",
@@ -2975,7 +2975,7 @@ async function start() {
   try { host = (await Promise.race([api.extension.getHost(), new Promise(r => setTimeout(() => r(null), 3000))]))?.name || "project"; } catch { /* older Connect: project */ }
   if (host === "3dviewer") { startViewerPanel(); return; }
   try {
-    await api.ui.setMenu({ title: "Better explorer by BJM", icon: new URL("icon-app.png", location.href).href, command: "be_open" });
+    await api.ui.setMenu({ title: "Better explorer by BJM", icon: new URL("icon.png", location.href).href, command: "be_open" });
   } catch { /* optional */ }
   await load();
   await takeViewerSelection();
