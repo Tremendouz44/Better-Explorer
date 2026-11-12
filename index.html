@@ -694,7 +694,7 @@ import * as TCW from "https://esm.run/trimble-connect-workspace-api";
 /* =====================================================================
    SETTINGS
    ===================================================================== */
-const VERSION = "v2026-11-11.4";
+const VERSION = "v2026-11-12.1";
 const HOSTS = {                                  // project.location -> Core API host
   northamerica:  "https://app.connect.trimble.com",
   europe:        "https://app21.connect.trimble.com",
@@ -2180,7 +2180,8 @@ const hostCode = () => API.match(/^https:\/\/app(\d*)\.connect\.trimble\.com\/tc
 const LINKS_KEY = () => "be.dlinks." + project.id;
 function savedLinks() { try { return JSON.parse(localStorage.getItem(LINKS_KEY()) || "[]"); } catch { return []; } }
 function storeLinks(list) { try { localStorage.setItem(LINKS_KEY(), JSON.stringify(list.slice(-300))); } catch { /* optional */ } }
-const DL_PAGE = () => new URL("d.html", location.href).href.split(/[?#]/)[0];
+// links go to https://filevault.stading.sk (which shows d.html); a copy run from elsewhere (tests) links its own d.html
+const DL_PAGE = () => location.hostname === "tremendouz44.github.io" ? "https://filevault.stading.sk/" : new URL("d.html", location.href).href.split(/[?#]/)[0];
 /* ---- e-mail for a Direct link: our own message, opened in Outlook or Gmail (sent by the person, from their address) ---- */
 const MAIL_KEY = "be.mail";
 function mailSettings() {

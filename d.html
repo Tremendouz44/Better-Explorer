@@ -277,6 +277,7 @@ function applyLang() {
   document.querySelectorAll(".lang button").forEach(b => b.classList.toggle("on", b.dataset.lang === LANG));
   const ttl = title || t("shared");
   document.title = ttl; $("appTitle").textContent = ttl;
+  if (PARENT) window.parent.postMessage({ type: "fv-title", title: ttl }, PARENT);
   if ($("loadText").dataset.k) $("loadText").textContent = t($("loadText").dataset.k, JSON.parse($("loadText").dataset.v || "{}"));
   if (lastMsg && !$("scrMsg").classList.contains("hidden")) message(...lastMsg);
   $("validity").textContent = M && M.e ? t("validUntil", { d: M.e }) : "";
@@ -472,7 +473,26 @@ $("cbAllHit").onclick = () => {
 /* ---------- downloading ---------- */
 let busy = false;
 const chosen = () => [...sel].map(k => nodes.get(k));
+/* ---- shown inside https://filevault.stading.sk (the address people see). Trimble Connect only answers this page on
+   github.io, so the shell page frames it; saving goes through the shell, because a framed page may not open the
+   "Save as" window or start downloads after the click. ---- */
+const PARENT_OK = o => o === "https://filevault.stading.sk" || /^http:\/\/(127\.0\.0\.1|localhost):\d+$/.test(o);
+const PARENT = (() => {
+  if (window.parent === window || !/[?&]embed=1\b/.test(location.search)) return "";
+  const o = (location.ancestorOrigins && location.ancestorOrigins[0]) || (document.referrer ? new URL(document.referrer).origin : "");
+  return PARENT_OK(o) ? o : "";
+})();
+let msgSeq = 0;
+function askParent(msg) {                                   // one message to the shell page and its answer
+  return new Promise(resolve => {
+    const id = ++msgSeq;
+    const on = e => { if (e.origin === PARENT && e.data && e.data.id === id) { window.removeEventListener("message", on); resolve(e.data); } };
+    window.addEventListener("message", on);
+    window.parent.postMessage({ ...msg, id }, PARENT);
+  });
+}
 function clickLink(href, name) {
+  if (PARENT) { window.parent.postMessage({ type: "fv-download", href, name }, PARENT); return; }
   const a = document.createElement("a");
   a.href = href; if (name) a.download = name; a.rel = "noopener";
   document.body.appendChild(a); a.click(); a.remove();
@@ -498,6 +518,10 @@ function zipName() { const d = new Date(); return `${safe(title || M.p) || "Shar
 const USE_PICKER = true;
 // the system "Save as" window, starting in the Downloads folder (any language); undefined = not available, null = cancelled
 async function pickSave(name, zip) {
+  if (PARENT) {                                             // the shell page opens the window (the click counts there too)
+    const r = await askParent({ type: "fv-pick", name, zip });
+    return r.res === "ok" ? { embed: true } : r.res === "cancel" ? null : undefined;
+  }
   if (!USE_PICKER || typeof window.showSaveFilePicker !== "function") return undefined;
   try {
     return await window.showSaveFilePicker({ suggestedName: name, startIn: "downloads", ...(zip ? { types: [{ description: "ZIP archive", accept: { "application/zip": [".zip"] } }] } : {}) });
@@ -512,7 +536,10 @@ async function downloadOne(n) {
     const res = await fetch(url);
     if (!res.ok) throw new HttpError(res.status, "");
     $("prog").textContent = t("saving", { n: n.name });
-    await res.body.pipeTo(await handle.createWritable());   // streamed to the disk, also for big files
+    if (handle.embed) {
+      const w = await askParent({ type: "fv-write", blob: await res.blob() });
+      if (!w.ok) throw new Error(t("nothing"));
+    } else await res.body.pipeTo(await handle.createWritable());   // streamed to the disk, also for big files
     $("prog").textContent = t("saved", { n: n.name });
   } else {
     clickLink(url, n.name);                               // browsers without the Save window: their normal download (Downloads)
@@ -604,8 +631,10 @@ async function downloadZip(list, keepFolders) {
   entries.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }));
   const zip = buildZip(entries);
   let saved = false;
-  if (handle) { try { const w = await handle.createWritable(); await w.write(zip); await w.close(); saved = true; } catch { /* normal download below */ } }
-  if (!saved) {
+  if (handle && handle.embed) saved = !!(await askParent({ type: "fv-write", blob: zip })).ok;
+  else if (handle) { try { const w = await handle.createWritable(); await w.write(zip); await w.close(); saved = true; } catch { /* normal download below */ } }
+  if (!saved && PARENT) window.parent.postMessage({ type: "fv-download", blob: zip, name }, PARENT);
+  else if (!saved) {
     const url = URL.createObjectURL(zip);
     clickLink(url, name);
     setTimeout(() => URL.revokeObjectURL(url), 120000);
