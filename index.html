@@ -277,6 +277,14 @@
   <button id="msgRetry" class="btn-primary hidden" type="button">Try again</button>
 </div>
 
+<!-- 3D Viewer panel: hands the loaded models over to Better explorer -->
+<div id="screenViewer" class="screen hidden">
+  <h2>Better explorer</h2>
+  <p>Tick in Better explorer every model that is loaded in the 3D Viewer now.</p>
+  <button id="vMark" class="btn-primary" type="button">Mark loaded models in Better explorer</button>
+  <p id="vInfo" class="detail"></p>
+</div>
+
 <!-- main -->
 <div id="screenMain" class="hidden">
   <div class="page-head">
@@ -694,7 +702,7 @@ import * as TCW from "https://esm.run/trimble-connect-workspace-api";
 /* =====================================================================
    SETTINGS
    ===================================================================== */
-const VERSION = "v2026-11-12.1";
+const VERSION = "v2026-11-12.2";
 const HOSTS = {                                  // project.location -> Core API host
   northamerica:  "https://app.connect.trimble.com",
   europe:        "https://app21.connect.trimble.com",
@@ -730,7 +738,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
    SCREENS + TOAST + STATUS
    ===================================================================== */
 function showScreen(screen) {
-  for (const id of ["screenLoading", "screenMsg", "screenMain"]) $(id).classList.toggle("hidden", id !== screen);
+  for (const id of ["screenLoading", "screenMsg", "screenMain", "screenViewer"]) $(id).classList.toggle("hidden", id !== screen);
 }
 function loading(text) { $("loadText").textContent = text; }
 function message(title, text, detail = "", retry = false) {
@@ -2962,11 +2970,69 @@ async function start() {
     message("Not connected", "Open Better explorer from a Trimble Connect project.");
     return;
   }
+  // the same page runs in the project (the explorer) and in the 3D Viewer (a small panel)
+  let host = "project";
+  try { host = (await Promise.race([api.extension.getHost(), new Promise(r => setTimeout(() => r(null), 3000))]))?.name || "project"; } catch { /* older Connect: project */ }
+  if (host === "3dviewer") { startViewerPanel(); return; }
   try {
     await api.ui.setMenu({ title: "Better explorer by BJM", icon: new URL("icon.png", location.href).href, command: "be_open" });
   } catch { /* optional */ }
   await load();
+  await takeViewerSelection();
 }
+
+/* =====================================================================
+   3D VIEWER -> BETTER EXPLORER: the models loaded in the viewer get ticked in the explorer.
+   The two never run at the same time (Connect closes one when the other opens), so the
+   viewer panel leaves the list in this browser and the explorer takes it when it opens.
+   ===================================================================== */
+const FROM_VIEWER = pid => "be.fromViewer." + pid;
+async function startViewerPanel() {
+  showScreen("screenViewer");
+  $("vMark").onclick = async () => {
+    $("vMark").disabled = true; $("vInfo").textContent = "Reading the loaded models…";
+    try {
+      const p = await api.project.getProject();
+      const models = listOf(await api.viewer.getModels("loaded")).filter(m => m && m.id && (!m.state || String(m.state).toLowerCase() === "loaded"));
+      if (!models.length) { $("vInfo").textContent = "No model is loaded in the 3D Viewer."; return; }
+      const data = { ids: [...new Set(models.map(m => String(m.id)))], at: Date.now() };
+      try { localStorage.setItem(FROM_VIEWER(p.id), JSON.stringify(data)); } catch { throw new Error("This browser does not allow storing the list."); }
+      try { await api.extension.broadcast({ type: "be-select", projectId: p.id, ids: data.ids }); } catch { /* optional */ }
+      $("vInfo").textContent = `${data.ids.length} model${data.ids.length === 1 ? "" : "s"} will be ticked. Open Better explorer in the project menu.`;
+    } catch (e) {
+      $("vInfo").textContent = "The models could not be read: " + errText(e);
+    } finally { $("vMark").disabled = false; }
+  };
+}
+// in the explorer: tick what the 3D Viewer left (within the last hour), open its folders and show the selection panel
+async function takeViewerSelection() {
+  if (!project || !rootId) return;
+  let data = null;
+  try { data = JSON.parse(localStorage.getItem(FROM_VIEWER(project.id)) || "null"); localStorage.removeItem(FROM_VIEWER(project.id)); } catch { return; }
+  if (!data || !Array.isArray(data.ids) || !data.ids.length || Date.now() - (data.at || 0) > 3600e3) return;
+  setStatus("Finding the models from the 3D Viewer…");
+  try {
+    const missing = () => data.ids.filter(id => !nodes.has(id));
+    for (const id of missing()) {                      // load the folders on each file's path
+      try {
+        const f = (await tc(`/files/${enc(id)}`)).json || {};
+        for (const p of listOf(f.path)) { const fid = String(p.id || ""); if (fid && fid !== rootId && nodes.has(fid)) await loadChildren(fid); }
+        if (f.parentId && nodes.has(String(f.parentId))) await loadChildren(String(f.parentId));
+      } catch { /* found below, or reported */ }
+    }
+    if (missing().length) await loadSubtree(rootId);
+    const found = data.ids.filter(id => nodes.get(id)?.type === "FILE");
+    sel.clear();
+    for (const id of found) {
+      sel.add(id);
+      for (let n = nodes.get(nodes.get(id).parentId); n && n.id !== rootId; n = nodes.get(n.parentId)) open.add(n.id);
+    }
+    showSelection();
+    const lost = data.ids.length - found.length;
+    toast(`${found.length} model${found.length === 1 ? "" : "s"} from the 3D Viewer ticked.${lost ? ` ${lost} could not be found.` : ""}`, lost > 0);
+  } finally { setStatus(""); }
+}
+window.addEventListener("storage", e => { if (project && e.key === FROM_VIEWER(project.id) && e.newValue) takeViewerSelection(); });
 async function load() {
   showScreen("screenLoading");
   try {
