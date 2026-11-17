@@ -701,7 +701,7 @@ import * as TCW from "https://esm.run/trimble-connect-workspace-api";
 /* =====================================================================
    SETTINGS
    ===================================================================== */
-const VERSION = "v2026-11-12.7";
+const VERSION = "v2026-11-17.1";
 const HOSTS = {                                  // project.location -> Core API host
   northamerica:  "https://app.connect.trimble.com",
   europe:        "https://app21.connect.trimble.com",
@@ -1401,7 +1401,7 @@ $("sView").onclick = async () => {
 // Which viewer opens which file type: Trimble Connect help, "Supported file formats" (browser)
 const SET = s => new Set(s.split(" "));
 const EXT_2D = SET("bmp doc docx gif jpeg jpg pdf png ppt pptx rtf tif tiff txt xls xlsx");
-const EXT_MODEL = SET("ifc ifczip igs iges nwd nwc rvt skp stp step svd svl tczip tekla tflx trb ttm vcl e57 las laz kml kmz jxl");   // real 3D models, point clouds, geospatial
+const EXT_MODEL = SET("ifc ifczip igs iges nwd nwc rvt skp stp step svd svl tczip tekla tflx trb ttm vcl e57 las laz purl kml kmz jxl");   // real 3D models, point clouds (incl. .purl links), geospatial
 const EXT_3D = new Set([...EXT_MODEL, ...SET("dgn dwg dxf")]);                                                                      // drawings the 3D viewer can show too
 // a folder goes to the viewer as all the models inside it (drawings excluded: a folder of DWG sheets should not be loaded into 3D)
 const MODEL_EXT = EXT_MODEL;
